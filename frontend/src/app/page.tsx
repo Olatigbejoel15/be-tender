@@ -2,8 +2,10 @@ import Navbar from "@/components/Navbar";
 import Hero from "@/components/Hero";
 import BrandStrip from "@/components/BrandStrip";
 import FeaturedDrops from "@/components/FeaturedDrops";
-import Categories from "@/components/Categories"; // Section 4
-import WhyUs from "@/components/WhyUs"; // Section 5
+import Categories from "@/components/Categories";
+import WhyUs from "@/components/WhyUs";
+import Lookbook from "@/components/Lookbook"; // Section 6
+import Testimonials from "@/components/Testimonials"; // Section 7
 
 export default function Home() {
   return (
@@ -15,7 +17,9 @@ export default function Home() {
         <FeaturedDrops />
         <Categories />
         <WhyUs />
-        {/* Sections 6 to 8 will be added here, one per phase */}
+        <Lookbook />
+        <Testimonials />
+        {/* Section 8 (newsletter + footer) comes in Phase 7 */}
       </main>
     </>
   );

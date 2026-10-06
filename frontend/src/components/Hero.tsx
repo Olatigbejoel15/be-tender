@@ -135,7 +135,14 @@ export default function Hero() {
               </motion.a>
 
               {/* Secondary button: clear glass with a white edge, so it matches the box */}
-              
+              <motion.a
+                href="#lookbook"
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.97 }}
+                className="inline-flex items-center rounded-full border border-white/50 bg-white/10 px-8 py-4 text-sm font-semibold tracking-[0.15em] text-white uppercase backdrop-blur-sm transition-colors hover:bg-white/20"
+              >
+                View Lookbook
+              </motion.a>
             </motion.div>
 
             {/* Trust row: hidden on phones (keeps the box short), shown from sm screens up */}
