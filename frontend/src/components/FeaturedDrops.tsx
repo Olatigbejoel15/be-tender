@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
-import { products } from "../data/product"; // our product list
+import { products } from "../data/products"; // our product list
 import ProductCard from "@/components/ProductCard";
 
 export default function FeaturedDrops() {
@@ -37,7 +37,7 @@ export default function FeaturedDrops() {
 
         {/* Grid: 1 column on phones, 2 on tablets, 4 on large screens */}
         <div className="mt-12 grid gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-4">
-          {products.map((product, i) => (
+{products.slice(0, 4).map((product, i) => (
             <ProductCard key={product.id} product={product} index={i} />
           ))}
         </div>

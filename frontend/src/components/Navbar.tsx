@@ -6,11 +6,11 @@ import { ShoppingBag, Menu, X, Search, User } from "lucide-react"; // icons
 
 // Menu items in one list so we don't repeat code
 const links = [
-  { label: "Drops", href: "#drops" },
-  { label: "Categories", href: "#categories" },
-  { label: "Why Us", href: "#why" },
-  { label: "Lookbook", href: "#lookbook" },
-  { label: "Reviews", href: "#reviews" },
+  { label: "Drops", href: "/#drops" },
+  { label: "Categories", href: "/#categories" },
+  { label: "Why Us", href: "/#why" },
+  { label: "Lookbook", href: "/#lookbook" },
+  { label: "Reviews", href: "/#reviews" },
 ];
 
 export default function Navbar() {
@@ -30,7 +30,7 @@ export default function Navbar() {
             grid-cols-[1fr_auto_1fr] = left zone | center zone | right zone */}
         <div className="mx-auto grid h-16 max-w-7xl grid-cols-[1fr_auto_1fr] items-center px-6">
           {/* LEFT: brand name */}
-          <a href="#home" className="text-xl font-bold tracking-[0.25em]">
+          <a href="/" className="text-xl font-bold tracking-[0.25em]">
             BE TENDER
           </a>
 
