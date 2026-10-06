@@ -1,26 +1,41 @@
+/* Loads Tailwind CSS */
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
+/* Brand tokens: Tailwind turns each into classes like bg-canvas, text-ink, text-accent */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-canvas: #fbfaf7; /* page background, warm white */
+  --color-sand: #f1ece4;   /* soft neutral for strips and alternate sections */
+  --color-ink: #16161a;    /* main text and primary buttons */
+  --color-muted: #6b6b76;  /* secondary text */
+  --color-accent: #d9552b; /* the ONE highlight color */
+  --font-sans: var(--font-outfit); /* Outfit font loaded in layout.tsx */
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+/* Plain, clean page background (no gradient) */
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-canvas);
+  color: var(--color-ink);
+}
+
+/* Subtle liquid glass: translucent white with a soft blur */
+.glass {
+  background: rgba(255, 255, 255, 0.6);               /* see-through white */
+  backdrop-filter: blur(16px) saturate(150%);         /* frosted effect */
+  -webkit-backdrop-filter: blur(16px) saturate(150%); /* Safari support */
+  border: 1px solid rgba(255, 255, 255, 0.7);         /* light glass edge */
+  box-shadow: 0 4px 24px rgba(22, 22, 26, 0.06);      /* very soft shadow */
+}
+
+/* More solid version, used for the navbar */
+.glass-strong {
+  background: rgba(255, 255, 255, 0.85);
+}
+
+/* Lift-on-hover for cards (used in later sections) */
+.glass-hover {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.glass-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(22, 22, 26, 0.12);
 }
