@@ -3,9 +3,8 @@
 import { useEffect, useState } from "react"; // useState = memory, useEffect = timer
 import Image from "next/image"; // Next's optimized image component
 import { motion, type Variants } from "framer-motion"; // animations
-import { ArrowRight } from "lucide-react"; // arrow icon for the button
+import { ArrowRight, Truck, RotateCcw, ShieldCheck } from "lucide-react"; // arrow + the 3 trust icons
 
-// The slideshow photos. To add a 7th, add one more line here.
 // pos = which part of the photo to keep when it has to be cropped: "x% y%"
 // 50% 50% = center. 50% 20% = keep the top (faces). Change per photo to taste.
 const slides = [
@@ -29,6 +28,13 @@ const fadeUp: Variants = {
   }),
 };
 
+// The three small trust points under the buttons
+const perks = [
+  { icon: Truck, label: "Free delivery over ₦50k" },
+  { icon: RotateCcw, label: "30-day returns" },
+  { icon: ShieldCheck, label: "Secure payment" },
+];
+
 export default function Hero() {
   const [index, setIndex] = useState(0); // which photo is showing (0 = first)
 
@@ -48,7 +54,7 @@ export default function Hero() {
         id="home"
         className="relative h-[calc(100svh-97px)] min-h-[600px] overflow-hidden bg-sand"
       >
-                {/* LAYER 1: all photos stacked, only the active one is visible (crossfade) */}
+        {/* LAYER 1: all photos stacked, only the active one is visible (crossfade) */}
         <div className="absolute inset-0">
           {slides.map((slide, i) => (
             <motion.div
@@ -73,11 +79,10 @@ export default function Hero() {
         </div>
 
         {/* LAYER 2: the glass box on the left */}
-                {/* LAYER 2: the glass box on the left */}
         <div className="absolute inset-0 z-10 flex items-end px-4 pb-6 sm:px-8 lg:items-center lg:px-16 lg:pb-0">
           {/* The box: thin light border + faint dark tint + tiny blur, so the photo stays clear */}
           <div className="w-full max-w-2xl rounded-[2rem] border border-white/25 bg-linear-to-br from-black/35 to-black/10 p-6 shadow-xl backdrop-blur-[3px] sm:p-10">
-            {/* Pill label (original wording) */}
+            {/* Pill label */}
             <motion.span
               variants={fadeUp}
               initial="hidden"
@@ -88,7 +93,7 @@ export default function Hero() {
               New Season · 2026
             </motion.span>
 
-            {/* Headline (original wording): "you move." is in the accent orange */}
+            {/* Headline: "you move." is in the accent orange */}
             <motion.h1
               variants={fadeUp}
               initial="hidden"
@@ -99,7 +104,7 @@ export default function Hero() {
               Built for the way <span className="text-accent">you move.</span>
             </motion.h1>
 
-            {/* Paragraph (original wording) */}
+            {/* Paragraph */}
             <motion.p
               variants={fadeUp}
               initial="hidden"
@@ -111,19 +116,43 @@ export default function Hero() {
               your skin, serious about performance.
             </motion.p>
 
-            {/* Button (original wording), still in the accent orange */}
-            <motion.a
+            {/* Both buttons sit in one row. flex-wrap drops the second one below on narrow phones. */}
+            <motion.div
               variants={fadeUp}
               initial="hidden"
               animate="show"
               custom={3}
-              href="#drops"
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.97 }}
-              className="mt-8 inline-flex items-center gap-3 rounded-full bg-accent px-8 py-4 text-sm font-semibold tracking-[0.15em] text-white uppercase shadow-lg"
+              className="mt-8 flex flex-wrap gap-3"
             >
-              Shop the Drop <ArrowRight size={16} />
-            </motion.a>
+              {/* Primary button: accent orange */}
+              <motion.a
+                href="#drops"
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.97 }}
+                className="inline-flex items-center gap-3 rounded-full bg-accent px-8 py-4 text-sm font-semibold tracking-[0.15em] text-white uppercase shadow-lg"
+              >
+                Shop the Drop <ArrowRight size={16} />
+              </motion.a>
+
+              {/* Secondary button: clear glass with a white edge, so it matches the box */}
+              
+            </motion.div>
+
+            {/* Trust row: hidden on phones (keeps the box short), shown from sm screens up */}
+            <motion.ul
+              variants={fadeUp}
+              initial="hidden"
+              animate="show"
+              custom={4}
+              className="mt-7 hidden flex-wrap gap-x-6 gap-y-2 text-sm font-medium text-white/90 drop-shadow sm:flex"
+            >
+              {perks.map(({ icon: Icon, label }) => (
+                <li key={label} className="flex items-center gap-2">
+                  <Icon size={18} className="text-white" />
+                  {label}
+                </li>
+              ))}
+            </motion.ul>
           </div>
         </div>
       </section>
