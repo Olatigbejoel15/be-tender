@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <style>
+    /* Default (light tab): orange tile with white letters, matching the site accent */
+    .tile { fill: #d9552b; }
+    .letters { fill: #ffffff; }
+    /* Dark browser tab: lighter tile so it doesn't disappear into the tab bar */
+    @media (prefers-color-scheme: dark) {
+      .tile { fill: #ff7a4d; }
+      .letters { fill: #16161a; }
+    }
+  </style>
+  <!-- Rounded square background -->
+  <rect class="tile" width="64" height="64" rx="16"/>
+  <!-- "BT" monogram, centered. Bold geometric sans like the Outfit font on the site -->
+  <text class="letters" x="32" y="43" text-anchor="middle"
+        font-family="Outfit, Arial, Helvetica, sans-serif"
+        font-size="30" font-weight="700" letter-spacing="-1">BT</text>
+</svg>
