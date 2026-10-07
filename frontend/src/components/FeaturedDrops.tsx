@@ -28,7 +28,7 @@ export default function FeaturedDrops() {
             </h2>
           </div>
           <a
-            href="#categories"
+            href="/shop"
             className="inline-flex items-center gap-2 text-sm font-semibold transition-colors hover:text-accent"
           >
             View all <ArrowRight size={16} />
@@ -37,7 +37,7 @@ export default function FeaturedDrops() {
 
         {/* Grid: 1 column on phones, 2 on tablets, 4 on large screens */}
         <div className="mt-12 grid gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-4">
-{products.slice(0, 4).map((product, i) => (
+            {products.slice(0, 4).map((product, i) => (
             <ProductCard key={product.id} product={product} index={i} />
           ))}
         </div>

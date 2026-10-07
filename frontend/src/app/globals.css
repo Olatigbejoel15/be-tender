@@ -1,51 +1,138 @@
 /* Loads Tailwind CSS */
 @import "tailwindcss";
 
-/* Brand tokens: Tailwind turns each into classes like bg-canvas, text-ink, text-accent */
+/* LIGHT theme (the default): these variables hold the colors we use now */
+:root {
+  --canvas: #fbfaf7;  /* page background */
+  --sand: #f1ece4;    /* soft section background */
+  --ink: #16161a;     /* text color */
+  --muted: #6b6b76;   /* secondary text */
+  --accent: #d9552b;  /* highlight color (orange) */
+  --surface: #ffffff; /* cards, inputs, navbar */
+
+  /* Glass look, as variables so it can change per theme */
+  --glass-bg: rgba(255, 255, 255, 0.6);
+  --glass-strong-bg: rgba(255, 255, 255, 0.85);
+  --glass-border: rgba(255, 255, 255, 0.7);
+  --glass-shadow: 0 4px 24px rgba(22, 22, 26, 0.06);
+  --glass-hover-shadow: 0 12px 32px rgba(22, 22, 26, 0.12);
+}
+
+/* NAVY theme: applies when <html data-theme="navy"> is set by the toggle button.
+   Only the values change, the names stay the same. */
+html[data-theme="navy"] {
+  --canvas: #0b1f3f;  /* deep navy page background */
+  --sand: #102a52;    /* slightly lighter navy for alternate sections */
+  --ink: #eef3fb;     /* text becomes near-white */
+  --muted: #9db0cf;   /* soft blue-grey secondary text */
+  --accent: #3f80ff;  /* bright blue highlight */
+  --surface: #14305f; /* cards, inputs, navbar */
+
+  --glass-bg: rgba(20, 48, 95, 0.55);
+  --glass-strong-bg: rgba(20, 48, 95, 0.92);
+  --glass-border: rgba(255, 255, 255, 0.14);
+  --glass-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+  --glass-hover-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+
+  color-scheme: dark; /* makes scrollbars and form controls dark too */
+}
+
+/* Tells Tailwind: bg-canvas, text-ink, bg-accent... read from the variables above.
+   "inline" keeps them live, so they change when the theme changes. */
 @theme inline {
-  --color-canvas: #fbfaf7; /* page background, warm white */
-  --color-sand: #f1ece4;   /* soft neutral for strips and alternate sections */
-  --color-ink: #16161a;    /* main text and primary buttons */
-  --color-muted: #6b6b76;  /* secondary text */
-  --color-accent: #d9552b; /* the ONE highlight color */
+  --color-canvas: var(--canvas);
+  --color-sand: var(--sand);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
   --font-sans: var(--font-outfit); /* Outfit font loaded in layout.tsx */
 }
 
-/* Plain, clean page background (no gradient) */
+/* Page background and default text color */
 body {
-  background: var(--color-canvas);
-  color: var(--color-ink);
+  background: var(--canvas);
+  color: var(--ink);
 }
 
-/* Subtle liquid glass: translucent white with a soft blur */
+/* Glass look: now reads its colors from the theme variables */
 .glass {
-  background: rgba(255, 255, 255, 0.6);               /* see-through white */
-  backdrop-filter: blur(16px) saturate(150%);         /* frosted effect */
+  background: var(--glass-bg);
+  backdrop-filter: blur(16px) saturate(150%);
   -webkit-backdrop-filter: blur(16px) saturate(150%); /* Safari support */
-  border: 1px solid rgba(255, 255, 255, 0.7);         /* light glass edge */
-  box-shadow: 0 4px 24px rgba(22, 22, 26, 0.06);      /* very soft shadow */
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
 }
-
-/* More solid version, used for the navbar */
 .glass-strong {
-  background: rgba(255, 255, 255, 0.85);
+  background: var(--glass-strong-bg); /* more solid, used on cards that need to be readable */
 }
 
-/* Lift-on-hover for cards (used in later sections) */
+/* Lift-on-hover for cards */
 .glass-hover {
   transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 .glass-hover:hover {
   transform: translateY(-4px);
-  box-shadow: 0 12px 32px rgba(22, 22, 26, 0.12);
+  box-shadow: var(--glass-hover-shadow);
 }
 
-/* Scrolls the brand strip to the left by exactly half its width.
-   The content is duplicated, so the jump back to 0 is invisible. */
+/* Brand strip scroll: moves left by exactly half its width (content is duplicated) */
 @keyframes marquee {
   from { transform: translateX(0); }
   to { transform: translateX(-50%); }
 }
 .animate-marquee {
-  animation: marquee 30s linear infinite; /* 30s per loop, constant speed, forever */
+  animation: marquee 30s linear infinite;
+}
+
+/* Navbar links scroll smoothly to their section */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Accessibility: turn off continuous motion for visitors who ask for reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .animate-marquee {
+    animation: none;
+  }
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* ---------- NAVY THEME OVERRIDES ----------
+   Some components use "white" or "black" directly (cards, inputs, borders).
+   These rules make them follow the navy theme. They only apply when the theme is navy. */
+
+/* Solid white surfaces (navbar, cards, inputs, badges) become navy surfaces */
+html[data-theme="navy"] .bg-white {
+  background-color: var(--surface);
+}
+/* See-through white boxes (testimonial "Purchased" box, contact title card) */
+html[data-theme="navy"] .bg-white\/70 {
+  background-color: color-mix(in srgb, var(--surface) 80%, transparent);
+}
+/* The soft white fade at the bottom of the contact banner fades into the navy page instead */
+html[data-theme="navy"] .from-white {
+  --tw-gradient-from: var(--canvas);
+}
+/* Thin divider lines: dark lines would vanish on navy, so use light ones */
+html[data-theme="navy"] .border-black\/5,
+html[data-theme="navy"] .border-black\/10 {
+  border-color: rgba(255, 255, 255, 0.12);
+}
+html[data-theme="navy"] .hover\:bg-black\/5:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+}
+/* Solid "ink" buttons turn light in navy, so their text must turn dark to stay readable */
+html[data-theme="navy"] .bg-ink,
+html[data-theme="navy"] .hover\:bg-ink:hover,
+html[data-theme="navy"] .disabled\:hover\:bg-ink:disabled:hover {
+  color: #0b1f3f;
+}
+/* Success and error messages: lighter shades so they read on navy */
+html[data-theme="navy"] .text-green-700 {
+  color: #6ee7a0;
+}
+html[data-theme="navy"] .text-red-600 {
+  color: #ff9a9a;
 }
