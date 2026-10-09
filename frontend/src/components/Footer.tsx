@@ -5,6 +5,7 @@ import { categories } from "@/data/categories";
 import { site } from "@/data/site"; // your business details
 import SocialLinks from "@/components/SocialLinks"; // the round social icons
 import FooterNewsletter from "@/components/FooterNewsletter"; // the email box
+import Logo from "@/components/Logo";
 
 export default function Footer() {
   const year = new Date().getFullYear(); // the copyright year updates itself
@@ -19,8 +20,8 @@ export default function Footer() {
         {/* TOP ROW: brand + socials on the left, newsletter on the right */}
         <div className="grid gap-12 lg:grid-cols-2">
           <div>
-            <Link href="/" className="text-xl font-bold tracking-[0.25em]">
-              BE TENDER
+            <Link href="/" aria-label="Be Tender home">
+              <Logo className="h-10 w-auto" />
             </Link>
             <p className="mt-4 max-w-sm text-sm leading-relaxed text-muted">
               Breathable, sculpting gym wear made for real training, designed to

@@ -1,18 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 3 100 100">
   <style>
-    /* Default (light tab): orange tile with white letters, matching the site accent */
-    .tile { fill: #d9552b; }
-    .letters { fill: #ffffff; }
-    /* Dark browser tab: lighter tile so it doesn't disappear into the tab bar */
-    @media (prefers-color-scheme: dark) {
-      .tile { fill: #ff7a4d; }
-      .letters { fill: #16161a; }
-    }
+    /* Default (light tab): orange leaf + dark leaf */
+    .a { fill: #d9552b; }
+    .b { fill: #16161a; }
+    /* Dark browser tab: swap the dark leaf for white so it stays visible */
+    @media (prefers-color-scheme: dark) { .b { fill: #ffffff; } }
   </style>
-  <!-- Rounded square background -->
-  <rect class="tile" width="64" height="64" rx="16"/>
-  <!-- "BT" monogram, centered. Bold geometric sans like the Outfit font on the site -->
-  <text class="letters" x="32" y="43" text-anchor="middle"
-        font-family="Outfit, Arial, Helvetica, sans-serif"
-        font-size="30" font-weight="700" letter-spacing="-1">BT</text>
+  <path class="a" d="M50 92 C16 84 10 44 20 14 C52 18 66 56 50 92Z"/>
+  <path class="b" d="M50 92 C84 84 90 44 80 14 C48 18 34 56 50 92Z"/>
 </svg>

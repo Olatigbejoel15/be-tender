@@ -6,6 +6,7 @@ import { ShoppingBag, Menu, X, Search, User } from "lucide-react"; // icons
 import ThemeToggle from "@/components/ThemeToggle"; // the light/navy switch
 import SearchOverlay from "@/components/SearchOverlay"; // the search panel
 import { useCart } from "@/context/CartContext"; // the shared cart
+import Logo from "@/components/Logo"; // the Be Tender logo
 
 // Menu items in one list so we don't repeat code
 const links = [
@@ -33,8 +34,8 @@ export default function Navbar() {
         {/* grid-cols-[1fr_auto_1fr] = left zone | center zone | right zone */}
         <div className="mx-auto grid h-16 max-w-7xl grid-cols-[1fr_auto_1fr] items-center px-6">
           {/* LEFT: brand name */}
-          <a href="/" className="text-xl font-bold tracking-[0.25em]">
-            BE TENDER
+          <a href="/" aria-label="Be Tender home">
+            <Logo className="h-9 w-auto" /> {/* h-9 = 36px tall, width follows automatically */}
           </a>
 
           {/* CENTER: links (hidden on phones) */}
