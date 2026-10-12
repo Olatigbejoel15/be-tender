@@ -30,6 +30,6 @@ class ProductRepository implements ProductRepositoryInterface
 
     public function findBySlug(string $slug): ?Product
     {
-        return Product::with('category')->where('slug', $slug)->first();    // null if not found
+        return Product::with('category', 'photos')->where('slug', $slug)->first();    // null if not found
     }
 }
