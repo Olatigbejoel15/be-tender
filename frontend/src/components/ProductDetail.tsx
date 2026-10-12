@@ -10,10 +10,12 @@ import { naira } from "@/lib/format";
 import { useCart } from "@/context/CartContext"; // the shared cart
 
 export default function ProductDetail({ product }: { product: Product }) {
-  // All photos: the main one first, then any extras from "gallery"
-  const photos = [product.image, ...(product.gallery ?? [])];
+  // Thumbnails: one photo per color first, then any extra gallery photos (duplicates removed)
+  const colorPhotos = product.colors.map((c) => c.image).filter((src): src is string => Boolean(src));
+  const photos = [...new Set([...colorPhotos, ...(product.gallery ?? [])])];
+  if (photos.length === 0) photos.push(product.image); // nothing from the API: use the main photo
 
-  const [photo, setPhoto] = useState(0); // which photo is showing (0 = first)
+  const [picked, setPicked] = useState<string | null>(null); // thumbnail the customer clicked (null = follow the color)
   const [colorIdx, setColorIdx] = useState(0); // which color is selected (starts with the first)
   const [size, setSize] = useState<string | null>(null); // selected size: null = nothing chosen yet
   const [qty, setQty] = useState(1); // quantity
@@ -22,6 +24,7 @@ export default function ProductDetail({ product }: { product: Product }) {
   const { addItem } = useCart(); // adds an item to the shared cart
 
   const color = product.colors[colorIdx]; // the selected color object
+  const shown = picked ?? color.image ?? product.image; // the photo on screen right now
   const soldOut = product.soldOut ?? []; // sizes that can't be picked
   const sizeLabel = product.sizeLabel ?? "Size"; // "Size", "Capacity", "Resistance"...
   const categorySlug = product.category.toLowerCase(); // "Men" -> "men", for the breadcrumb link
@@ -32,13 +35,13 @@ export default function ProductDetail({ product }: { product: Product }) {
       setStatus("needSize");
       return;
     }
-    
+
     // Send this exact combination to the cart (the cart drawer opens by itself)
     addItem({
       productId: product.id,
       slug: product.slug,
       name: product.name,
-      image: product.image,
+      image: color.image ?? product.image, // the cart shows the color they chose
       price: product.price,
       color: color.name,
       size,
@@ -99,16 +102,16 @@ export default function ProductDetail({ product }: { product: Product }) {
         {/* LEFT: gallery */}
         <div>
           <div className="relative aspect-[4/5] overflow-hidden rounded-3xl bg-sand">
-            {/* key={photos[photo]} makes React treat each photo as new, so it fades in when you switch */}
+            {/* key={shown} makes React treat each photo as new, so it fades in when you switch */}
             <motion.div
-              key={photos[photo]}
+              key={shown}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.4 }}
               className="absolute inset-0"
             >
               <Image
-                src={photos[photo]}
+                src={shown}
                 alt={product.name}
                 fill
                 priority
@@ -130,10 +133,19 @@ export default function ProductDetail({ product }: { product: Product }) {
               {photos.map((src, i) => (
                 <button
                   key={src}
-                  onClick={() => setPhoto(i)}
+                  onClick={() => {
+                    const match = product.colors.findIndex((c) => c.image === src); // is this a color's photo?
+                    if (match >= 0) {
+                      setColorIdx(match); // select that color too
+                      setPicked(null);
+                    } else {
+                      setPicked(src); // an extra gallery photo
+                    }
+                    setStatus("idle");
+                  }}
                   aria-label={`Show photo ${i + 1}`}
                   className={`relative aspect-square overflow-hidden rounded-xl border-2 transition ${
-                    i === photo ? "border-accent" : "border-transparent opacity-70 hover:opacity-100"
+                    src === shown ? "border-accent" : "border-transparent opacity-70 hover:opacity-100"
                   }`}
                 >
                   <Image src={src} alt="" fill sizes="100px" className="object-cover" />
@@ -159,6 +171,7 @@ export default function ProductDetail({ product }: { product: Product }) {
                 <button
                   key={c.name}
                   onClick={() => {
+                    setPicked(null); // show this color's photo
                     setColorIdx(i);
                     setStatus("idle"); // clear old messages
                   }}

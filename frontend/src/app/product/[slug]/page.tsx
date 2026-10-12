@@ -4,13 +4,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ProductDetail from "@/components/ProductDetail";
 import ProductCard from "@/components/ProductCard";
-import { products } from "@/data/products";
-
-// Tells Next which product pages exist, so it can prepare them in advance.
-// When we move to the Laravel API, this changes.
-export function generateStaticParams() {
-  return products.map((p) => ({ slug: p.slug }));
-}
+import { getProduct, getProducts } from "@/lib/api"; // data now comes from Laravel
 
 // Sets the browser tab title and search description for each product
 export async function generateMetadata({
@@ -19,7 +13,7 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params; // params arrives as a Promise in current Next.js
-  const product = products.find((p) => p.slug === slug);
+  const product = await getProduct(slug);
   if (!product) return {};
   return { title: `${product.name} | BE TENDER`, description: product.description };
 }
@@ -30,13 +24,12 @@ export default async function ProductPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const product = products.find((p) => p.slug === slug);
+  const product = await getProduct(slug);
   if (!product) notFound(); // /product/banana shows a 404
 
   // Up to 4 other products from the same category
-  const related = products
-    .filter((p) => p.category === product.category && p.id !== product.id)
-    .slice(0, 4);
+  const sameCategory = await getProducts({ category: product.category.toLowerCase() });
+  const related = sameCategory.filter((p) => p.id !== product.id).slice(0, 4);
 
   return (
     <>

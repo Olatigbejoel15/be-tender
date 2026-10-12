@@ -1,11 +1,9 @@
 import { notFound } from "next/navigation"; // shows a 404 page for unknown categories
 import PageShell from "@/components/PageShell";
 import ShopGrid from "@/components/ShopGrid";
-import { products } from "@/data/products";
+import { getProducts } from "@/lib/api"; // data now comes from Laravel
 import { categories } from "@/data/categories";
 
-// params holds the variable from the web address (e.g. { category: "men" }).
-// In current Next.js it arrives as a Promise, so we await it.
 export default async function CategoryPage({
   params,
 }: {
@@ -17,8 +15,7 @@ export default async function CategoryPage({
   const category = categories.find((c) => c.slug === slug);
   if (!category) notFound();
 
-  // Only this category's products. The filters inside ShopGrid are built from these.
-  const items = products.filter((p) => p.category === category.name);
+  const items = await getProducts({ category: slug }); // the API filters by category slug
 
   return (
     <PageShell eyebrow="Shop" title={category.name} intro={category.tagline}>
