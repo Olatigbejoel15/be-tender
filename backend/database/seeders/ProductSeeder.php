@@ -35,31 +35,6 @@ class ProductSeeder extends Seeder
         $one = ['One size'];
         $note = ' (sample: confirm your exact fabric)'; // reminder to replace with real details
 
-        // Where the photos live, and which file types are accepted (lowercase extensions only)
-        $dir = base_path('../frontend/public/products/');
-        $exts = ['jpg', 'jpeg', 'png', 'webp'];
-
-        // Returns "/products/name.ext" if a photo called "name" exists in any accepted format, else null
-        $find = function (string $base) use ($dir, $exts): ?string {
-            foreach ($exts as $ext) {
-                if (file_exists($dir . "$base.$ext")) {
-                    return "/products/$base.$ext";
-                }
-            }
-            return null;
-        };
-
-        // Main photo (slug.png) plus extra gallery photos (slug-2.png ... slug-6.png)
-        $photos = function (string $slug) use ($find): array {
-            $found = array_filter([$find($slug)]);
-            for ($i = 2; $i <= 6; $i++) {
-                if ($photo = $find("$slug-$i")) {
-                    $found[] = $photo;
-                }
-            }
-            return array_values($found);
-        };
-
         // Each row: [category, name, price, badge, description, features, fabric, care, sizes, colours, soldOutSizes, sizeLabel]
         $rows = [
             // ================= WOMEN (12) =================
@@ -109,23 +84,6 @@ class ProductSeeder extends Seeder
             $label = $r[11] ?? 'Size';     // optional: label like "Capacity"
             $slug = Str::slug($name);      // "Core Seamless Leggings" -> "core-seamless-leggings"
 
-            // Colour photos: slug-colour.png, e.g. pulse-sport-cap-black.png (null if the photo isn't there yet)
-            $colors = array_map(function ($color) use ($slug, $find) {
-                $color['image'] = $find($slug . '-' . Str::slug($color['name']));
-                return $color;
-            }, $colors);
-
-            // No main photo (slug.png)? Use the Black photo, or else the first colour photo that exists
-            $images = $photos($slug);
-            if ($find($slug) === null) {
-                $byName = array_column($colors, 'image', 'name');
-                $main = $byName['Black'] ?? (array_values(array_filter($byName))[0] ?? null);
-                if ($main) {
-                    array_unshift($images, $main);
-                }
-            }
-            $images = $images ?: ['/products/placeholder.svg']; // nothing at all: placeholder
-
             Product::updateOrCreate(['slug' => $slug], [  // re-runnable: matches by slug
                 'category_id' => $cat[$category],
                 'name' => $name,
@@ -139,7 +97,6 @@ class ProductSeeder extends Seeder
                 'size_label' => $label,
                 'sold_out_sizes' => $soldOut,
                 'colors' => $colors,
-                'images' => $images,                   // real photos if present, else placeholder
                 'is_featured' => in_array($slug, $featured),
             ]);
         }

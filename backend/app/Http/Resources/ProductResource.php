@@ -10,18 +10,17 @@ class ProductResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
-        $local = $this->images ?? [];                                   // Old local photo paths (fallback)
         $photos = $this->relationLoaded('photos') ? $this->photos : collect(); // Cloudinary rows
         $byColor = $photos->whereNotNull('color')->pluck('url', 'color');       // "black" => url
         $gallery = $photos->whereNull('color')->sortBy('position')->pluck('url')->values()->all();
 
         $colors = collect($this->colors ?? [])->map(fn ($c) => [
-            ...$c,                                                      // name, hex, old image
-            'image' => $byColor[Str::slug($c['name'])] ?? ($c['image'] ?? null), // Cloudinary first
+            ...$c,                                                      // name, hex
+            'image' => $byColor[Str::slug($c['name'])] ?? null,         // this colour's Cloudinary photo
         ])->all();
 
         $main = $gallery[0] ?? $byColor['black'] ?? $byColor->first()   // Main, else black, else any colour
-            ?? ($local[0] ?? '/products/placeholder.svg');
+            ?? '/products/placeholder.svg';                             // nothing uploaded yet
 
         return [
             'id'          => $this->id,
