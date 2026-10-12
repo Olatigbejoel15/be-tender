@@ -13,7 +13,7 @@ class ProductRepository implements ProductRepositoryInterface
     public function getFiltered(ProductFilterData $filters): Collection
     {
         return Product::query()
-            ->with('category')                                              // load categories in one query
+            ->with(['category', 'photos'])                                              // load categories and photos in one query
             ->when($filters->category, fn ($q, $slug) =>                    // runs only if a category was given
                 $q->whereHas('category', fn ($c) => $c->where('slug', $slug)))
             ->when($filters->featured, fn ($q) =>                           // featured only
