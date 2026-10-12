@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { Minus, Plus, ShoppingBag, ChevronRight, ChevronDown, Truck, RotateCcw, ShieldCheck } from "lucide-react";
-import type { Product } from "@/data/products";
+import type { Product } from "@/types/product";
 import { naira } from "@/lib/format";
 import { useCart } from "@/context/CartContext"; // the shared cart
 

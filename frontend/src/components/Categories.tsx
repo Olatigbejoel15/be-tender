@@ -4,10 +4,10 @@ import Link from "next/link"; // Next's link: moves between pages without a full
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import { categories } from "@/data/categories";
-import { products } from "@/data/products";
+import type { Product } from "@/types/product";
 import ProductCard from "@/components/ProductCard"; // the card we built in Phase 4
 
-export default function Categories() {
+export default function Categories({ products }: { products: Product[] }) {
   return (
     // id="categories" is the target of the "Categories" navbar link
     <section id="categories" className="scroll-mt-28 bg-sand px-6 py-24">

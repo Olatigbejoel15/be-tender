@@ -5,9 +5,9 @@ import Image from "next/image";
 import { motion } from "framer-motion";
 import { Star, ChevronLeft, ChevronRight } from "lucide-react"; // star + arrow icons
 import { testimonials } from "@/data/testimonials"; // the 7 reviews
-import { products } from "@/data/products"; // used to look up what each person bought
+import type { Product } from "@/types/product"; // used to look up what each person bought
 
-export default function Testimonials() {
+export default function Testimonials({ products }: { products: Product[] }) {
   const trackRef = useRef<HTMLDivElement>(null); // handle to the sideways-scrolling row
   const [canPrev, setCanPrev] = useState(false); // can we scroll left? (false at the start)
   const [canNext, setCanNext] = useState(true); // can we scroll right?
@@ -78,7 +78,7 @@ export default function Testimonials() {
         >
           {testimonials.map((t) => {
             // Find the product this person bought, using the productId
-            const bought = products.find((p) => p.id === t.productId);
+            const bought = products.find((p) => p.slug === t.productSlug);
 
             return (
               <motion.figure

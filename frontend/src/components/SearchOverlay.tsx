@@ -6,7 +6,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation"; // lets us send the visitor to another page from code
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, X, ArrowRight } from "lucide-react";
-import { searchProducts } from "@/lib/search";
+import type { Product } from "@/types/product";
+import { getProducts } from "@/lib/api"; // asks the Laravel API
 import { naira } from "@/lib/format";
 
 const suggestions = ["Leggings", "Joggers", "Bottle", "Sports bra"]; // shown before anything is typed
@@ -16,8 +17,30 @@ const suggestions = ["Leggings", "Joggers", "Bottle", "Sports bra"]; // shown be
 function SearchPanel({ onClose }: { onClose: () => void }) {
   const router = useRouter();
   const [query, setQuery] = useState(""); // what the visitor has typed
+  const [found, setFound] = useState<{ q: string; items: Product[] }>({ q: "", items: [] }); // last API answer + the text it was for
   const text = query.trim();
-  const results = searchProducts(text).slice(0, 5); // best 5 matches
+
+  // Wait 250ms after the last keystroke, then ask the API. Older answers are ignored.
+  useEffect(() => {
+    if (!text) return; // nothing typed: nothing to ask
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      let items: Product[] = [];
+      try {
+        items = await getProducts({ search: text });
+      } catch {
+        /* API unreachable: show "no products found" */
+      }
+      if (!cancelled) setFound({ q: text, items });
+    }, 250);
+    return () => {
+      cancelled = true; // a newer keystroke makes this answer stale
+      clearTimeout(timer);
+    };
+  }, [text]);
+
+  const results = found.q === text ? found.items.slice(0, 5) : []; // best 5, only if they match the current text
+  const searching = text !== "" && found.q !== text; // typed something, answer not back yet
 
   // While open: Escape closes it, and the page behind can't scroll
   useEffect(() => {
@@ -59,7 +82,7 @@ function SearchPanel({ onClose }: { onClose: () => void }) {
         </button>
       </form>
 
-      {/* Nothing typed yet: show suggestions. Typed with matches: show products. No matches: say so. */}
+      {/* Nothing typed: suggestions. Waiting for the API: "Searching". Matches: products. No matches: say so. */}
       <div className="mt-5 max-h-[60vh] overflow-y-auto">
         {!text ? (
           <div>
@@ -76,6 +99,8 @@ function SearchPanel({ onClose }: { onClose: () => void }) {
               ))}
             </div>
           </div>
+        ) : searching ? (
+          <p className="py-6 text-center text-sm text-muted">Searching...</p>
         ) : results.length === 0 ? (
           <p className="py-6 text-center text-sm text-muted">No products found for &ldquo;{text}&rdquo;. Try another word.</p>
         ) : (

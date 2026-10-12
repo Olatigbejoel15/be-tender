@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link"; // moves between pages without a full reload
 import { motion } from "framer-motion";
 import { ArrowUpRight } from "lucide-react";
-import type { Product } from "@/data/products";
+import type { Product } from "@/types/product";
 import { naira } from "@/lib/format"; // shared price formatter
 
 // product = the data for this card. index = its position, used for the staggered entrance.

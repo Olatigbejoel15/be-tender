@@ -2,10 +2,11 @@
 
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
-import { products } from "../data/products"; // our product list
+import type { Product } from "@/types/product";
 import ProductCard from "@/components/ProductCard";
 
-export default function FeaturedDrops() {
+// products = the featured items, fetched from the API by the home page
+export default function FeaturedDrops({ products }: { products: Product[] }) {
   return (
     // id="drops" is the target of the "Drops" link and the hero button.
     // scroll-mt-28 stops the fixed navbar from covering the title when you jump here.
@@ -37,7 +38,7 @@ export default function FeaturedDrops() {
 
         {/* Grid: 1 column on phones, 2 on tablets, 4 on large screens */}
         <div className="mt-12 grid gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-4">
-            {products.slice(0, 4).map((product, i) => (
+          {products.slice(0, 4).map((product, i) => (
             <ProductCard key={product.id} product={product} index={i} />
           ))}
         </div>

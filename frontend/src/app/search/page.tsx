@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import PageShell from "@/components/PageShell";
 import ProductCard from "@/components/ProductCard";
-import { searchProducts } from "@/lib/search";
+import { getProducts } from "@/lib/api"; // data now comes from Laravel
 import { categories } from "@/data/categories";
 
 export const metadata: Metadata = {
@@ -18,7 +18,7 @@ export default async function SearchPage({
 }) {
   const { q = "" } = await searchParams;
   const query = q.trim();
-  const results = searchProducts(query); // the same function the search panel uses
+  const results = query ? await getProducts({ search: query }) : []; // the API does the matching
 
   return (
     <PageShell

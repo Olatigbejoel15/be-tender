@@ -1,4 +1,4 @@
-import type { Product } from "@/data/products";
+import type { Product } from "@/types/product";
 
 // Where the Laravel API lives (set in .env.local)
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000/api/v1";

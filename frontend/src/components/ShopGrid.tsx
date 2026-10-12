@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { SlidersHorizontal } from "lucide-react";
 import ProductCard from "@/components/ProductCard";
-import type { Product } from "@/data/products";
+import type { Product } from "@/types/product";
 import { categories } from "@/data/categories";
 
 // Clothing sizes in their natural order. Other options (like "500ml") are added after these.
