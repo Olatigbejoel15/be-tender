@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\V1\CategoryController;
 use App\Http\Controllers\Api\V1\ProductController;
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\OrderController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -21,5 +22,10 @@ Route::prefix('v1')->group(function () {
     Route::middleware('auth:sanctum')->group(function () { // everything inside needs a valid token
         Route::get('/me', [AuthController::class, 'me']);
         Route::post('/logout', [AuthController::class, 'logout']);
+        
+        Route::post('/orders', [OrderController::class, 'store']);               // place an order
+        Route::get('/orders', [OrderController::class, 'index']);                // my orders
+        Route::get('/orders/{reference}', [OrderController::class, 'show']);     // one of my orders
     });
+
 });

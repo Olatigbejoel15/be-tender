@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Outfit } from "next/font/google";
 import "./globals.css";
+import { AuthProvider } from "@/context/AuthContext"; // who is signed in
 import { CartProvider } from "@/context/CartContext"; // the shared cart
 import CartDrawer from "@/components/CartDrawer"; // the slide-out panel
 
@@ -25,11 +26,13 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body className={`${outfit.variable} font-sans antialiased`}>
-        {/* Everything inside the provider can use useCart() */}
-        <CartProvider>
-          {children}
-          <CartDrawer />
-        </CartProvider>
+        {/* Everything inside the providers can use useAuth() and useCart() */}
+        <AuthProvider>
+          <CartProvider>
+            {children}
+            <CartDrawer />
+          </CartProvider>
+        </AuthProvider>
       </body>
     </html>
   );

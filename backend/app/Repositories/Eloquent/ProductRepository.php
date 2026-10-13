@@ -31,5 +31,10 @@ class ProductRepository implements ProductRepositoryInterface
     public function findBySlug(string $slug): ?Product
     {
         return Product::with('category', 'photos')->where('slug', $slug)->first();    // null if not found
+
+    }
+    public function findManyByIds(array $ids): \Illuminate\Support\Collection
+    {
+        return Product::with('photos')->whereIn('id', $ids)->get()->keyBy('id'); // id => product
     }
 }

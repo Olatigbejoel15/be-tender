@@ -11,6 +11,8 @@ use App\Services\Contracts\ImageUploaderInterface;
 use App\Services\Images\CloudinaryImageUploader;
 use App\Repositories\Contracts\UserRepositoryInterface;
 use App\Repositories\Eloquent\UserRepository;
+use App\Repositories\Contracts\OrderRepositoryInterface;
+use App\Repositories\Eloquent\OrderRepository;
 
 class RepositoryServiceProvider extends ServiceProvider
 {
@@ -23,5 +25,6 @@ class RepositoryServiceProvider extends ServiceProvider
         ProductRepositoryInterface::class => ProductRepository::class,
         CategoryRepositoryInterface::class => CategoryRepository::class,
         UserRepositoryInterface::class => UserRepository::class, // Users come from Eloquent
+        OrderRepositoryInterface::class => OrderRepository::class, // Orders come from Eloquent
     ];
 }

@@ -6,6 +6,7 @@ import { ShoppingBag, Menu, X, Search, User } from "lucide-react"; // icons
 import ThemeToggle from "@/components/ThemeToggle"; // the light/navy switch
 import SearchOverlay from "@/components/SearchOverlay"; // the search panel
 import { useCart } from "@/context/CartContext"; // the shared cart
+import { useAuth } from "@/context/AuthContext"; // who is signed in
 import Logo from "@/components/Logo"; // the Be Tender logo
 
 // Menu items in one list so we don't repeat code
@@ -22,6 +23,7 @@ export default function Navbar() {
   const [searchOpen, setSearchOpen] = useState(false); // is the search panel showing?
   const closeSearch = useCallback(() => setSearchOpen(false), []); // stable, so the panel's effect doesn't restart on every render
   const { count, openCart } = useCart(); // count = items in the cart, openCart = show the drawer
+  const { user } = useAuth(); // null when signed out
 
   return (
     <header className="fixed inset-x-0 top-0 z-50 bg-white">
@@ -62,9 +64,16 @@ export default function Navbar() {
             >
               <Search size={20} />
             </button>
-            <button aria-label="Account" className="hidden rounded-full p-2.5 transition hover:bg-black/5 md:block">
+
+            {/* Account: goes to the account page when signed in, or the sign-in page */}
+            <a
+              href={user ? "/account" : "/login"}
+              aria-label={user ? "My account" : "Sign in"}
+              title={user ? user.name : "Sign in"}
+              className="hidden rounded-full p-2.5 transition hover:bg-black/5 md:block"
+            >
               <User size={20} />
-            </button>
+            </a>
 
             {/* The theme switch: visible on every screen size */}
             <ThemeToggle />
@@ -141,11 +150,11 @@ export default function Navbar() {
 
             {/* Account link */}
             <a
-              href="#account"
+              href={user ? "/account" : "/login"}
               onClick={() => setOpen(false)}
               className="mt-3 flex items-center gap-3 py-3 text-base font-medium"
             >
-              <User size={20} /> Account
+              <User size={20} /> {user ? "My account" : "Sign in"}
             </a>
           </motion.div>
         )}
