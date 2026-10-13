@@ -27,7 +27,7 @@ export class ApiError extends Error {
 }
 
 // One helper for every call: adds the JSON headers and the token, and turns failures into ApiError
-async function call<T>(
+export async function call<T>( // exported so ordersApi.ts can reuse it
   path: string,
   method: "GET" | "POST",
   token: string | null = null,

@@ -29,6 +29,7 @@ type CartContextValue = {
   addItem: (item: NewItem) => void;
   setQty: (key: string, qty: number) => void;
   removeItem: (key: string) => void;
+  clearCart: () => void; // empties the cart after an order is placed
 };
 
 const CartContext = createContext<CartContextValue | null>(null);
@@ -96,6 +97,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     setItems((prev) => prev.filter((i) => i.key !== key));
   }, []);
 
+    const clearCart = useCallback(() => setItems([]), []);
+
   // Totals are calculated from the items, so they can never get out of sync.
   // useMemo means "only recalculate when items change".
   const count = useMemo(() => items.reduce((sum, i) => sum + i.qty, 0), [items]);
@@ -103,7 +106,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <CartContext.Provider
-      value={{ items, count, subtotal, isOpen, openCart, closeCart, addItem, setQty, removeItem }}
+      value={{ items, count, subtotal, isOpen, openCart, closeCart, addItem, setQty, removeItem , clearCart}}
     >
       {children}
     </CartContext.Provider>
