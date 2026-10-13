@@ -9,6 +9,8 @@ use App\Repositories\Eloquent\ProductRepository;
 use Illuminate\Support\ServiceProvider;
 use App\Services\Contracts\ImageUploaderInterface;
 use App\Services\Images\CloudinaryImageUploader;
+use App\Repositories\Contracts\UserRepositoryInterface;
+use App\Repositories\Eloquent\UserRepository;
 
 class RepositoryServiceProvider extends ServiceProvider
 {
@@ -20,5 +22,6 @@ class RepositoryServiceProvider extends ServiceProvider
         ImageUploaderInterface::class => CloudinaryImageUploader::class, // Cloudinary is the uploader
         ProductRepositoryInterface::class => ProductRepository::class,
         CategoryRepositoryInterface::class => CategoryRepository::class,
+        UserRepositoryInterface::class => UserRepository::class, // Users come from Eloquent
     ];
 }

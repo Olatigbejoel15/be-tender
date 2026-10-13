@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\V1\CategoryController;
 use App\Http\Controllers\Api\V1\ProductController;
+use App\Http\Controllers\Api\V1\AuthController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -13,4 +14,12 @@ Route::prefix('v1')->group(function () {
     Route::get('/categories', [CategoryController::class, 'index']);      // list categories
     Route::get('/products', [ProductController::class, 'index']);         // list/filter products
     Route::get('/products/{slug}', [ProductController::class, 'show']);   // one product
+
+    Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:10,1'); // 10 tries a minute
+    Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');        // 5 tries a minute
+
+    Route::middleware('auth:sanctum')->group(function () { // everything inside needs a valid token
+        Route::get('/me', [AuthController::class, 'me']);
+        Route::post('/logout', [AuthController::class, 'logout']);
+    });
 });
