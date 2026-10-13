@@ -1,10 +1,11 @@
 "use client"; // uses state from the login and the router
 
 import { useEffect } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { LogOut, Package } from "lucide-react";
+import { LogOut} from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import AccountOrders from "@/components/AccountOrders";
+
 
 export default function AccountPanel() {
   const router = useRouter();
@@ -48,20 +49,8 @@ export default function AccountPanel() {
         </button>
       </section>
 
-      {/* Orders: placeholder until checkout exists */}
-      <section className="flex flex-col items-center justify-center rounded-3xl border border-black/10 px-6 py-12 text-center">
-        <span className="flex h-14 w-14 items-center justify-center rounded-full bg-accent/10 text-accent">
-          <Package size={24} />
-        </span>
-        <p className="mt-4 text-lg font-semibold">No orders yet</p>
-        <p className="mt-1 max-w-xs text-sm text-muted">Your orders will show up here once you place one.</p>
-        <Link
-          href="/shop"
-          className="mt-6 rounded-full bg-ink px-8 py-3.5 text-sm font-semibold tracking-[0.15em] text-white uppercase"
-        >
-          Start shopping
-        </Link>
-      </section>
+           {/* Orders: loaded from the API */}
+      <AccountOrders />
     </div>
   );
 }
