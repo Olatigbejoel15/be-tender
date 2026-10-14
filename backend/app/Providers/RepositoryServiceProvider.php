@@ -13,6 +13,8 @@ use App\Repositories\Contracts\UserRepositoryInterface;
 use App\Repositories\Eloquent\UserRepository;
 use App\Repositories\Contracts\OrderRepositoryInterface;
 use App\Repositories\Eloquent\OrderRepository;
+use App\Services\Contracts\PaymentGatewayInterface;
+use App\Services\Payments\PaystackGateway;
 
 class RepositoryServiceProvider extends ServiceProvider
 {
@@ -22,6 +24,7 @@ class RepositoryServiceProvider extends ServiceProvider
     // "When something asks for the interface, give it this class"
     public array $bindings = [
         ImageUploaderInterface::class => CloudinaryImageUploader::class, // Cloudinary is the uploader
+        PaymentGatewayInterface::class => PaystackGateway::class, // Payments go through Paystack
         ProductRepositoryInterface::class => ProductRepository::class,
         CategoryRepositoryInterface::class => CategoryRepository::class,
         UserRepositoryInterface::class => UserRepository::class, // Users come from Eloquent

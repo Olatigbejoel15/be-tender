@@ -8,6 +8,7 @@ use App\Repositories\Contracts\OrderRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use App\Enums\OrderStatus;
 
 class OrderRepository implements OrderRepositoryInterface
 {
@@ -47,5 +48,26 @@ class OrderRepository implements OrderRepositoryInterface
         } while (Order::where('reference', $reference)->exists());
 
         return $reference;
+    }
+
+        public function findByReference(string $reference): ?Order
+    {
+        return Order::with('items')->where('reference', $reference)->first();
+    }
+
+    public function attachPaymentReference(Order $order, string $paymentReference): void
+    {
+        $order->update(['payment_reference' => $paymentReference]);
+    }
+
+    public function markPaid(Order $order, string $paymentReference): bool
+    {
+        return Order::where('id', $order->id)
+            ->where('status', OrderStatus::Pending->value)   // Only if still pending, so a double call does nothing
+            ->update([
+                'status'            => OrderStatus::Paid->value,
+                'payment_reference' => $paymentReference,
+                'paid_at'           => now(),
+            ]) === 1;
     }
 }

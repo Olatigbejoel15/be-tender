@@ -5,4 +5,5 @@ return [
     'delivery_fee_lagos' => 3000,  // PLACEHOLDER: set your real Lagos fee
     'delivery_fee_other' => 5000,  // PLACEHOLDER: set your real fee for other states
     'max_qty'            => 10,    // Most of one item per order line
+    'frontend_url' => env('FRONTEND_URL', 'http://localhost:3000'), // Where Paystack returns the customer
 ];

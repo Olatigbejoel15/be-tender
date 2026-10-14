@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+        'paystack' => [
+        'secret_key' => env('PAYSTACK_SECRET_KEY'),                          // Never hard-code this
+        'base_url'   => env('PAYSTACK_BASE_URL', 'https://api.paystack.co'), // Paystack API address
+    ],
+
 ];
