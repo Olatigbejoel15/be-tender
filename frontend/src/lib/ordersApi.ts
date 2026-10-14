@@ -55,3 +55,13 @@ export const listOrders = () => call<{ data: Order[] }>("/orders", "GET", getTok
 
 export const getOrder = (reference: string) =>
   call<{ data: Order }>(`/orders/${encodeURIComponent(reference)}`, "GET", getToken()).then((r) => r.data);
+
+// Ask Laravel to start a Paystack payment; returns the page the customer pays on
+export const startPayment = (reference: string) =>
+  call<{ authorizationUrl: string }>(`/orders/${encodeURIComponent(reference)}/pay`, "POST", getToken()).then(
+    (r) => r.authorizationUrl
+  );
+
+// Ask Laravel to check with Paystack whether the order has been paid
+export const confirmPayment = (reference: string) =>
+  call<{ data: Order }>(`/orders/${encodeURIComponent(reference)}/confirm`, "POST", getToken()).then((r) => r.data);

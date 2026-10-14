@@ -1,43 +1,116 @@
-"use client"; // needs the login token, so it fetches in the browser
+"use client"; // needs the login token and the browser address, so it runs in the browser
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, Clock } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { ApiError } from "@/lib/authApi";
-import { getOrder, type Order } from "@/lib/ordersApi";
+import { confirmPayment, getOrder, startPayment, type Order } from "@/lib/ordersApi";
 import { naira } from "@/lib/format";
 
 export default function OrderConfirmation({ reference }: { reference: string }) {
   const { user, ready } = useAuth();
   const [order, setOrder] = useState<Order | null>(null);
   const [error, setError] = useState("");
+  const [returned, setReturned] = useState(false); // true if we just came back from Paystack
+  const [busy, setBusy] = useState(false);         // true while a payment call is running
+  const [payError, setPayError] = useState("");
 
-  // Load the order once we know who is signed in
+  // Load the order. If Paystack just sent the customer back, confirm the payment first.
   useEffect(() => {
     if (!ready || !user) return;
-    getOrder(reference)
-      .then(setOrder)
-      .catch((e) => setError(e instanceof ApiError && e.status === 404 ? "We couldn't find that order." : "Could not load the order."));
+
+    const params = new URLSearchParams(window.location.search);
+    const cameBack = params.has("reference") || params.has("trxref"); // Paystack adds these
+
+    const load = cameBack ? confirmPayment(reference) : getOrder(reference);
+    load
+      .then((o) => {
+        setOrder(o);
+        if (cameBack) {
+          setReturned(true);
+          window.history.replaceState(null, "", window.location.pathname); // tidy the address bar
+        }
+      })
+      .catch((e) =>
+        setError(e instanceof ApiError && e.status === 404 ? "We couldn't find that order." : "Could not load the order.")
+      );
   }, [ready, user, reference]);
+
+  // Send the customer to Paystack to pay
+  const pay = async () => {
+    setPayError("");
+    setBusy(true);
+    try {
+      window.location.href = await startPayment(reference); // leaves our site for Paystack's page
+    } catch (e) {
+      setPayError(e instanceof ApiError ? e.message : "Could not start the payment. Please try again.");
+      setBusy(false);
+    }
+  };
+
+  // "I've paid but it still says pending": ask Paystack again
+  const checkAgain = async () => {
+    setPayError("");
+    setBusy(true);
+    try {
+      setOrder(await confirmPayment(reference));
+    } catch (e) {
+      setPayError(e instanceof ApiError ? e.message : "Could not check the payment. Please try again.");
+    }
+    setBusy(false);
+  };
 
   if (!ready) return <p className="text-muted">Loading...</p>;
   if (!user) return <p>Please <Link href="/login" className="underline">sign in</Link> to view this order.</p>;
   if (error) return <p className="text-red-600">{error}</p>;
-  if (!order) return <p className="text-muted">Loading your order...</p>;
+  if (!order) return <p className="text-muted">{window.location.search ? "Confirming your payment..." : "Loading your order..."}</p>;
+
+  const isPending = order.status === "pending";
 
   return (
     <div className="max-w-3xl space-y-8">
-      <div className="flex items-start gap-4 rounded-3xl bg-accent/10 p-6">
-        <CheckCircle2 className="mt-0.5 shrink-0 text-accent" />
-        <div>
-          <p className="text-lg font-semibold">Order received</p>
-          <p className="text-sm text-muted">
-            Reference <strong className="text-ink">{order.reference}</strong> · {order.statusLabel}
-          </p>
+      {/* Status banner: changes with the order's payment state */}
+      {isPending ? (
+        <div className="rounded-3xl border border-black/10 p-6">
+          <div className="flex items-start gap-4">
+            <Clock className="mt-0.5 shrink-0 text-accent" />
+            <div>
+              <p className="text-lg font-semibold">Awaiting payment</p>
+              <p className="text-sm text-muted">
+                Reference <strong className="text-ink">{order.reference}</strong>. Your order is reserved once you pay.
+              </p>
+              {returned && (
+                <p className="mt-2 text-sm text-red-600">We haven&apos;t received your payment yet. You can try again below.</p>
+              )}
+            </div>
+          </div>
+          <div className="mt-5 flex flex-wrap items-center gap-3">
+            <button
+              onClick={pay}
+              disabled={busy}
+              className="rounded-full bg-accent px-8 py-3.5 text-sm font-semibold tracking-[0.15em] text-white uppercase shadow-lg disabled:opacity-60"
+            >
+              {busy ? "Please wait..." : `Pay ${naira.format(order.total)}`}
+            </button>
+            <button onClick={checkAgain} disabled={busy} className="text-sm font-medium text-muted underline underline-offset-4 hover:text-accent">
+              I&apos;ve already paid, check again
+            </button>
+          </div>
+          {payError && <p className="mt-3 text-sm text-red-600">{payError}</p>}
         </div>
-      </div>
+      ) : (
+        <div className="flex items-start gap-4 rounded-3xl bg-accent/10 p-6">
+          <CheckCircle2 className="mt-0.5 shrink-0 text-accent" />
+          <div>
+            <p className="text-lg font-semibold">{order.status === "paid" ? "Payment received. Thank you!" : order.statusLabel}</p>
+            <p className="text-sm text-muted">
+              Reference <strong className="text-ink">{order.reference}</strong> · {order.statusLabel}
+            </p>
+          </div>
+        </div>
+      )}
 
       <ul className="divide-y divide-black/10 rounded-3xl border border-black/10 px-6">
         {order.items.map((i, n) => (
