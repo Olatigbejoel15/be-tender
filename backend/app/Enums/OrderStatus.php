@@ -23,4 +23,21 @@ enum OrderStatus: string
             self::Cancelled  => 'Cancelled',
         };
     }
+
+        // Where an order may go next (an admin cannot set "paid": only a confirmed payment does)
+    public function allowedNext(): array
+    {
+        return match ($this) {
+            self::Pending    => [self::Cancelled],
+            self::Paid       => [self::Processing, self::Cancelled],
+            self::Processing => [self::Shipped, self::Cancelled],
+            self::Shipped    => [self::Delivered],
+            self::Delivered, self::Cancelled => [], // Final states
+        };
+    }
+
+    public function canMoveTo(self $next): bool
+    {
+        return in_array($next, $this->allowedNext(), true);
+    }
 }

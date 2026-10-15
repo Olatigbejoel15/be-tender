@@ -5,6 +5,9 @@ namespace App\Repositories\Contracts;
 use App\Models\Order;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Collection;
+use App\DTOs\OrderFilterData;
+use App\Enums\OrderStatus;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 interface OrderRepositoryInterface
 {
@@ -22,4 +25,12 @@ interface OrderRepositoryInterface
     public function markPaid(Order $order, string $paymentReference): bool;    // Pending -> paid, once only
 
     public function findByIdempotencyKey(User $user, string $key): ?Order; // Order already made for this attempt, if any
+
+    public function paginateForAdmin(OrderFilterData $filters): LengthAwarePaginator;     // Filtered, paged list for staff
+
+    public function findForAdmin(string $reference): ?Order;                              // One order with customer + history
+
+    public function lockByReference(string $reference): ?Order;                           // Fetch AND lock the row (use inside a transaction)
+
+    public function recordStatus(Order $order, OrderStatus $to, User $actor, ?string $note): void; // Change status + log it
 }

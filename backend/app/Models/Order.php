@@ -35,4 +35,9 @@ class Order extends Model
     {
         return $this->hasMany(OrderItem::class); // The lines in this order
     }
+
+        public function statusHistories(): HasMany
+    {
+        return $this->hasMany(OrderStatusHistory::class)->oldest('id'); // Oldest first reads like a timeline
+    }
 }

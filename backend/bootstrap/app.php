@@ -13,7 +13,8 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-                $middleware->alias([
+            $middleware->redirectGuestsTo(fn () => null); // API only: never redirect guests to a login page
+            $middleware->alias([
             'staff' => \App\Http\Middleware\EnsureStaff::class, // Use as ->middleware('staff')
         ]);
     })

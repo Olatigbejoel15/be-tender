@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\V1\ProductController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\OrderController;
 use App\Http\Controllers\Api\V1\PaymentController;
+use App\Http\Controllers\Api\V1\Admin\OrderController as AdminOrderController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Resources\UserResource;
@@ -24,6 +25,10 @@ Route::prefix('v1')->group(function () {
         // Everything under /api/v1/admin needs a login AND a staff role
     Route::prefix('admin')->middleware(['auth:sanctum', 'staff'])->group(function () {
         Route::get('/me', fn (Request $request) => new UserResource($request->user())); // Who am I (staff view)
+        
+        Route::get('/orders', [AdminOrderController::class, 'index']);                       // List + filter
+        Route::get('/orders/{reference}', [AdminOrderController::class, 'show']);            // One order
+        Route::patch('/orders/{reference}/status', [AdminOrderController::class, 'updateStatus']); // Change stage
     });    // 5 tries a minute
 
     Route::middleware('auth:sanctum')->group(function () { // everything inside needs a valid token
