@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Database\UniqueConstraintViolationException;
 
 class OrderService
 {
@@ -23,8 +24,14 @@ class OrderService
     ) {}
 
     // Turn a cart into an order. Every price and option is checked against the database.
-    public function place(User $user, CheckoutData $data): Order
-    {
+
+        public function place(User $user, CheckoutData $data, ?string $idempotencyKey = null): Order
+        {
+        // Same attempt seen before? Return the order we already made.
+        if ($idempotencyKey && $existing = $this->orders->findByIdempotencyKey($user, $idempotencyKey)) {
+            return $existing;
+        }
+
         $found = $this->products->findManyByIds(
             collect($data->lines)->pluck('productId')->unique()->values()->all()
         );
@@ -50,17 +57,23 @@ class OrderService
 
         $deliveryFee = $this->deliveryFee($subtotal, $data->state);
 
-        return $this->orders->create($user, [
-            'status'         => OrderStatus::Pending,
-            'subtotal'       => $subtotal,
-            'delivery_fee'   => $deliveryFee,
-            'total'          => $subtotal + $deliveryFee,
-            'recipient_name' => $data->recipientName,
-            'phone'          => $data->phone,
-            'address'        => $data->address,
-            'city'           => $data->city,
-            'state'          => $data->state,
-        ], $items);
+                try {
+            return $this->orders->create($user, [
+                'status'          => OrderStatus::Pending,
+                'subtotal'        => $subtotal,
+                'delivery_fee'    => $deliveryFee,
+                'total'           => $subtotal + $deliveryFee,
+                'recipient_name'  => $data->recipientName,
+                'phone'           => $data->phone,
+                'address'         => $data->address,
+                'city'            => $data->city,
+                'state'           => $data->state,
+                'idempotency_key' => $idempotencyKey,   // Saved so repeats can be recognised
+            ], $items);
+        } catch (UniqueConstraintViolationException $e) {
+            // Two identical requests raced: the other one won, so return its order
+            return ($idempotencyKey ? $this->orders->findByIdempotencyKey($user, $idempotencyKey) : null) ?? throw $e;
+        }
     }
 
     public function listFor(User $user): Collection

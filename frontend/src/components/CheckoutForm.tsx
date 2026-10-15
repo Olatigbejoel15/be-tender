@@ -35,6 +35,7 @@ export default function CheckoutForm() {
   const [busy, setBusy] = useState(false);
   const [placed, setPlaced] = useState(false); // stops the "empty cart" flash while we redirect
   const [prefilled, setPrefilled] = useState(false);
+  const [attemptKey] = useState(() => crypto.randomUUID()); // one key per visit to the checkout page
 
   // Fill name and phone from the account once (only while the fields are still empty)
   if (user && !prefilled) {
@@ -86,7 +87,7 @@ export default function CheckoutForm() {
         state,
         // map cart lines to what the API expects (no prices are sent)
         items: items.map((i) => ({ product_id: i.productId, color: i.color, size: i.size, quantity: i.qty })),
-      });
+      }, attemptKey);
       setPlaced(true);
       clearCart(); // the order exists now, so empty the cart
       router.push(`/order/${order.reference}`);

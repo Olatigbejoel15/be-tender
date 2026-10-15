@@ -27,12 +27,13 @@ export class ApiError extends Error {
 }
 
 // One helper for every call: adds the JSON headers and the token, and turns failures into ApiError
-export async function call<T>( // exported so ordersApi.ts can reuse it
+  export async function call<T>(
   path: string,
   method: "GET" | "POST",
   token: string | null = null,
-  body?: unknown
-): Promise<T> {
+  body?: unknown,
+  extraHeaders: Record<string, string> = {} // e.g. the Idempotency-Key
+    ): Promise<T> {  
   let res: Response;
   try {
     res = await fetch(`${BASE}${path}`, {
@@ -41,6 +42,7 @@ export async function call<T>( // exported so ordersApi.ts can reuse it
         Accept: "application/json", // ask Laravel for JSON, even for errors
         ...(body ? { "Content-Type": "application/json" } : {}),
         ...(token ? { Authorization: `Bearer ${token}` } : {}), // proves who we are
+        ...extraHeaders,
       },
       body: body ? JSON.stringify(body) : undefined,
       cache: "no-store", // never reuse an old answer for account data

@@ -70,4 +70,12 @@ class OrderRepository implements OrderRepositoryInterface
                 'paid_at'           => now(),
             ]) === 1;
     }
+
+        public function findByIdempotencyKey(User $user, string $key): ?Order
+    {
+        return Order::with('items')
+            ->where('user_id', $user->id)       // Keys are per customer
+            ->where('idempotency_key', $key)
+            ->first();
+    }
 }

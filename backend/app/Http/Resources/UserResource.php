@@ -13,7 +13,7 @@ class UserResource extends JsonResource
             'id'        => $this->id,
             'name'      => $this->name,
             'email'     => $this->email,
-            'phone'     => $this->phone,
+            'phone'     => $this->phone,'role'      => $this->role?->value ?? 'customer', // The frontend uses this to show/hide admin links
             'createdAt' => $this->created_at?->toIso8601String(),
         ]; // Never include the password hash
     }

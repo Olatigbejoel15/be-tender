@@ -48,8 +48,9 @@ export const getToken = (): string | null => {
   }
 };
 
-export const placeOrder = (input: CheckoutInput) =>
-  call<{ data: Order }>("/orders", "POST", getToken(), input).then((r) => r.data);
+// The key identifies ONE checkout attempt, so a repeat can't create a second order
+export const placeOrder = (input: CheckoutInput, idempotencyKey: string) =>
+  call<{ data: Order }>("/orders", "POST", getToken(), input, { "Idempotency-Key": idempotencyKey }).then((r) => r.data);
 
 export const listOrders = () => call<{ data: Order[] }>("/orders", "GET", getToken()).then((r) => r.data);
 

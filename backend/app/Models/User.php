@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use App\Enums\UserRole;
 
 class User extends Authenticatable
 {
@@ -46,6 +47,19 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'role'      => UserRole::class, // Text <-> enum
+            'is_active' => 'boolean',
         ];
+    }
+
+        // Is this user on the team? (null-safe: a just-created user may not have the role loaded yet)
+    public function isStaff(): bool
+    {
+        return $this->role?->isStaff() ?? false;
+    }
+
+    public function isSuperAdmin(): bool
+    {
+        return $this->role === UserRole::SuperAdmin;
     }
 }

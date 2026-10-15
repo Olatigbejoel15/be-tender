@@ -12,7 +12,7 @@ class Order extends Model
     protected $fillable = [
         'user_id', 'reference', 'status', 'subtotal', 'delivery_fee', 'total',
         'recipient_name', 'phone', 'address', 'city', 'state',
-        'payment_reference', 'paid_at',
+        'payment_reference', 'paid_at', 'idempotency_key',
     ]; // Columns we may fill in bulk
 
     protected function casts(): array

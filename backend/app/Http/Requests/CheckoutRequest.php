@@ -26,6 +26,7 @@ class CheckoutRequest extends FormRequest
             'items.*.color'      => ['required', 'string', 'max:50'],
             'items.*.size'       => ['required', 'string', 'max:50'],
             'items.*.quantity'   => ['required', 'integer', 'min:1', 'max:' . config('shop.max_qty')],
+            'idempotency_key'    => ['nullable', 'string', 'regex:/^[A-Za-z0-9_-]{8,64}$/'], // From the header
             // No price field on purpose: the server decides prices
         ];
     }
@@ -46,5 +47,17 @@ class CheckoutRequest extends FormRequest
                 $v['items']
             ),
         );
+    }
+
+        // Copy the Idempotency-Key header into the input so it gets validated like any field
+    protected function prepareForValidation(): void
+    {
+        $this->merge(['idempotency_key' => $this->header('Idempotency-Key')]);
+    }
+
+    // The validated key, or null if the client didn't send one
+    public function idempotencyKey(): ?string
+    {
+        return $this->validated('idempotency_key');
     }
 }

@@ -20,4 +20,6 @@ interface OrderRepositoryInterface
     public function attachPaymentReference(Order $order, string $paymentReference): void; // Save the live payment attempt
 
     public function markPaid(Order $order, string $paymentReference): bool;    // Pending -> paid, once only
+
+    public function findByIdempotencyKey(User $user, string $key): ?Order; // Order already made for this attempt, if any
 }
