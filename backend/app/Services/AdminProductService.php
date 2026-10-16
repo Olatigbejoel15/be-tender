@@ -24,6 +24,7 @@ class AdminProductService
         private ProductRepositoryInterface $products,
         private ImageUploaderInterface $uploader, // Cloudinary
         private AuditLogger $audit,
+        private CatalogueCache $cache,            // Public catalogue cache
     ) {}
 
     public function list(AdminProductFilterData $filters): LengthAwarePaginator
@@ -44,6 +45,7 @@ class AdminProductService
         return DB::transaction(function () use ($actor, $data) {               // Product + log saved together
             $product = $this->products->create([...$data, 'slug' => $this->uniqueSlug($data['name'])]);
             $this->audit->record($actor, 'product.created', 'product', $product->id, "Created {$product->name}");
+            $this->refreshCatalogue();
 
             return $this->find($product->id);
         });
@@ -70,6 +72,7 @@ class AdminProductService
 
             $this->products->update($product, $data);
             $this->audit->record($actor, 'product.updated', 'product', $id, "Updated {$product->name}", $changes);
+            $this->refreshCatalogue();
 
             return $this->find($id);
         });
@@ -81,6 +84,7 @@ class AdminProductService
             $product = $this->find($id);
             $this->products->delete($product);                                  // Hidden, not erased (photos stay too)
             $this->audit->record($actor, 'product.deleted', 'product', $id, "Deleted {$product->name}");
+            $this->refreshCatalogue();
         });
     }
 
@@ -112,6 +116,7 @@ class AdminProductService
             $this->products->savePhoto($product, $colorSlug, $position, $uploaded['public_id'], $uploaded['url']);
             $label = $colorSlug ? "{$colorSlug} photo" : "gallery photo #{$position}";
             $this->audit->record($actor, 'product.photo_added', 'product', $product->id, "Added {$label} to {$product->name}");
+            $this->refreshCatalogue();
         });
 
         return $this->find($id);
@@ -126,6 +131,7 @@ class AdminProductService
         DB::transaction(function () use ($actor, $product, $photo) {
             $this->products->deletePhoto($photo);
             $this->audit->record($actor, 'product.photo_removed', 'product', $product->id, "Removed a photo from {$product->name}");
+            $this->refreshCatalogue();
         });
 
         try {
@@ -171,5 +177,11 @@ class AdminProductService
         }
 
         return $slug;
+    }
+
+    // Clear the public cache, but only once the database change is really saved
+    private function refreshCatalogue(): void
+    {
+        DB::afterCommit(fn () => $this->cache->flush());
     }
 }

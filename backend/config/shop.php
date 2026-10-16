@@ -6,4 +6,6 @@ return [
     'delivery_fee_other' => 5000,  // PLACEHOLDER: set your real fee for other states
     'max_qty'            => 10,    // Most of one item per order line
     'frontend_url' => env('FRONTEND_URL', 'http://localhost:3000'), // Where Paystack returns the customer
+    'catalogue_cache_ttl' => (int) env('CATALOGUE_CACHE_TTL', 600), // Seconds to keep catalogue data (0 turns caching off)
 ];
+

@@ -17,13 +17,17 @@ Route::get('/user', fn (Request $request) => $request->user())->middleware('auth
 
 // Version 1 of the public API: URLs look like /api/v1/products
 Route::prefix('v1')->group(function () {
-    Route::get('/categories', [CategoryController::class, 'index']);      // list categories
-    Route::get('/products', [ProductController::class, 'index']);         // list/filter products
-    Route::get('/products/{slug}', [ProductController::class, 'show']);   // one product
+        // Public catalogue: browsers may reuse a response for 60s, and answer "304 Not Modified" via the ETag
+    Route::middleware('cache.headers:public;max_age=60;etag')->group(function () {
+        Route::get('/categories', [CategoryController::class, 'index']);
+        Route::get('/products', [ProductController::class, 'index']);
+        Route::get('/products/{slug}', [ProductController::class, 'show']);
+    });
     Route::post('/webhooks/paystack', [PaymentController::class, 'webhook']); // Paystack calls this itself
 
     Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:10,1'); // 10 tries a minute
     Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
+
         // Everything under /api/v1/admin needs a login AND a staff role
     Route::prefix('admin')->middleware(['auth:sanctum', 'staff'])->group(function () {
         Route::get('/me', fn (Request $request) => new UserResource($request->user())); // Who am I (staff view)
