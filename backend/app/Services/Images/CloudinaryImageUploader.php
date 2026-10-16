@@ -45,4 +45,13 @@ class CloudinaryImageUploader implements ImageUploaderInterface
             'url'       => $result['secure_url'], // Full https link to the image
         ];
     }
+
+        public function delete(string $publicId): void
+    {
+        try {
+            $this->client->uploadApi()->destroy($publicId); // Remove the file from Cloudinary
+        } catch (Throwable $e) {
+            throw new RuntimeException('Cloudinary delete failed: ' . $e->getMessage(), 0, $e);
+        }
+    }
 }

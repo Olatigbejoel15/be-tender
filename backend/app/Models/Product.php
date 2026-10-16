@@ -7,9 +7,12 @@ use App\Enums\SizeLabel;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Product extends Model
 {
+    use SoftDeletes; // Makes delete() hide the row instead of erasing it
+
     protected $fillable = [
         'category_id', 'name', 'slug', 'description', 'price', 'badge', 'fabric',
         'care', 'features', 'sizes', 'size_label', 'sold_out_sizes', 'colors',
@@ -28,6 +31,8 @@ class Product extends Model
             'is_sold_out'    => 'boolean',
             'is_featured'    => 'boolean',
             'price'          => 'integer',
+            'is_published'   => 'boolean',
+            'version'        => 'integer',
         ];
     }
 

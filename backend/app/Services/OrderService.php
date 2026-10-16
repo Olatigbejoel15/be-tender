@@ -102,7 +102,7 @@ class OrderService
     private function assertBuyable(?Product $product, CartLineData $line, int $index): void
     {
         $problem = match (true) {
-            $product === null || $product->is_sold_out
+            $product === null || $product->is_sold_out || ! $product->is_published
                 => 'This product is no longer available.',
             ! collect($product->colors ?? [])->contains('name', $line->color)
                 => "{$product->name} is not available in {$line->color}.",
