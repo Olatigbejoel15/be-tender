@@ -125,12 +125,21 @@ class OrderRepository implements OrderRepositoryInterface
         return Order::where('reference', $reference)->lockForUpdate()->first(); // Others wait until our transaction ends
     }
 
-    public function recordStatus(Order $order, OrderStatus $to, User $actor, ?string $note): void
+    // public function recordStatus(Order $order, OrderStatus $to, User $actor, ?string $note): void
+    public function recordStatus(Order $order, OrderStatus $to, ?User $actor, ?string $note): void
     {
         $from = $order->status;                       // Remember where it was
         $order->update(['status' => $to]);            // Move it
         $order->statusHistories()->create([           // Log it
-            'user_id' => $actor->id, 'from_status' => $from, 'to_status' => $to, 'note' => $note,
+            'user_id' => $actor?->id, 'from_status' => $from, 'to_status' => $to, 'note' => $note,
         ]);
+    }
+
+        public function expiredPendingReferences(\Carbon\CarbonInterface $before, int $limit): array
+    {
+        return Order::where('status', OrderStatus::Pending)
+            ->where('created_at', '<', $before)
+            ->orderBy('id')->limit($limit)   // Oldest first, in batches
+            ->pluck('reference')->all();
     }
 }

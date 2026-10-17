@@ -12,9 +12,14 @@ use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
+
 class AdminOrderService
 {
-    public function __construct(private OrderRepositoryInterface $orders) {}
+    public function __construct(
+        private OrderRepositoryInterface $orders,
+        private StockService $stock,      // Gives stock back on cancellation
+        private CatalogueCache $cache,
+        ) {}
 
     public function list(OrderFilterData $filters): LengthAwarePaginator
     {
@@ -39,6 +44,10 @@ class AdminOrderService
             }
 
             $this->orders->recordStatus($order, $to, $actor, $note);
+            if ($to === OrderStatus::Cancelled) {
+                $this->stock->release($order);                       // Items go back on the shelf (only if this order took stock)
+                DB::afterCommit(fn () => $this->cache->flush());     // Public pages show them again
+            }
         });
 
         return $this->find($reference); // Reload with history for the response

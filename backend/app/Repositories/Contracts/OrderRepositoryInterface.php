@@ -32,5 +32,8 @@ interface OrderRepositoryInterface
 
     public function lockByReference(string $reference): ?Order;                           // Fetch AND lock the row (use inside a transaction)
 
-    public function recordStatus(Order $order, OrderStatus $to, User $actor, ?string $note): void; // Change status + log it
+    // public function recordStatus(Order $order, OrderStatus $to, User $actor, ?string $note): void; // Change status + log it
+    public function recordStatus(Order $order, OrderStatus $to, ?User $actor, ?string $note): void; // null actor = System
+
+    public function expiredPendingReferences(\Carbon\CarbonInterface $before, int $limit): array; // Unpaid orders older than $before
 }

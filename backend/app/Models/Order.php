@@ -12,7 +12,7 @@ class Order extends Model
     protected $fillable = [
         'user_id', 'reference', 'status', 'subtotal', 'delivery_fee', 'total',
         'recipient_name', 'phone', 'address', 'city', 'state',
-        'payment_reference', 'paid_at', 'idempotency_key',
+        'payment_reference', 'paid_at', 'idempotency_key', 'stock_reserved_at'
     ]; // Columns we may fill in bulk
 
     protected function casts(): array
@@ -23,6 +23,7 @@ class Order extends Model
             'delivery_fee' => 'integer',
             'total'        => 'integer',
             'paid_at'      => 'datetime',
+            'stock_reserved_at' => 'datetime',
         ];
     }
 

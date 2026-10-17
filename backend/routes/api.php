@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\V1\PaymentController;
 use App\Http\Controllers\Api\V1\Admin\OrderController as AdminOrderController;
 use App\Http\Controllers\Api\V1\Admin\AuditLogController;
 use App\Http\Controllers\Api\V1\Admin\ProductController as AdminProductController;
+use App\Http\Controllers\Api\V1\Admin\StockController as AdminStockController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Resources\UserResource;
@@ -45,6 +46,10 @@ Route::prefix('v1')->group(function () {
         Route::delete('/products/{id}/photos/{photoId}', [AdminProductController::class, 'destroyPhoto'])->whereNumber(['id', 'photoId']);
 
         Route::get('/audit-logs', [AuditLogController::class, 'index'])->middleware('can:manage-staff'); // Super admin only
+
+        Route::get('/products/{id}/stock', [AdminStockController::class, 'show'])->whereNumber('id');    // Stock matrix
+        Route::patch('/products/{id}/stock', [AdminStockController::class, 'update'])->whereNumber('id'); // Set / add stock
+        Route::get('/stock/low', [AdminStockController::class, 'low']);                                    // Running low
     });    // 5 tries a minute
 
     Route::middleware('auth:sanctum')->group(function () { // everything inside needs a valid token

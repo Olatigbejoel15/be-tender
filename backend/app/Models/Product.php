@@ -44,4 +44,8 @@ class Product extends Model
     {
         return $this->hasMany(ProductPhoto::class); // A product has many Cloudinary photos
     }
+        public function stocks(): HasMany
+    {
+        return $this->hasMany(ProductStock::class); // Units per colour and size
+    }
 }

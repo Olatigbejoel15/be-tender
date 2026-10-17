@@ -12,21 +12,23 @@ use App\Repositories\Contracts\OrderRepositoryInterface;
 use App\Repositories\Contracts\ProductRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
-use Illuminate\Database\UniqueConstraintViolationException;
 
 class OrderService
 {
     public function __construct(
         private OrderRepositoryInterface $orders,
         private ProductRepositoryInterface $products,
+        private StockService $stock,       // Reserves stock under a lock
+        private CatalogueCache $cache,     // Refreshed when stock changes
     ) {}
 
     // Turn a cart into an order. Every price and option is checked against the database.
-
-        public function place(User $user, CheckoutData $data, ?string $idempotencyKey = null): Order
-        {
+    public function place(User $user, CheckoutData $data, ?string $idempotencyKey = null): Order
+    {
         // Same attempt seen before? Return the order we already made.
         if ($idempotencyKey && $existing = $this->orders->findByIdempotencyKey($user, $idempotencyKey)) {
             return $existing;
@@ -57,19 +59,28 @@ class OrderService
 
         $deliveryFee = $this->deliveryFee($subtotal, $data->state);
 
-                try {
-            return $this->orders->create($user, [
-                'status'          => OrderStatus::Pending,
-                'subtotal'        => $subtotal,
-                'delivery_fee'    => $deliveryFee,
-                'total'           => $subtotal + $deliveryFee,
-                'recipient_name'  => $data->recipientName,
-                'phone'           => $data->phone,
-                'address'         => $data->address,
-                'city'            => $data->city,
-                'state'           => $data->state,
-                'idempotency_key' => $idempotencyKey,   // Saved so repeats can be recognised
-            ], $items);
+        try {
+            return DB::transaction(function () use ($user, $data, $items, $subtotal, $deliveryFee, $idempotencyKey) {
+                $this->stock->reserve($items); // Lock, check and take the stock (throws a 422 if short)
+
+                $order = $this->orders->create($user, [
+                    'status'            => OrderStatus::Pending,
+                    'subtotal'          => $subtotal,
+                    'delivery_fee'      => $deliveryFee,
+                    'total'             => $subtotal + $deliveryFee,
+                    'recipient_name'    => $data->recipientName,
+                    'phone'             => $data->phone,
+                    'address'           => $data->address,
+                    'city'              => $data->city,
+                    'state'             => $data->state,
+                    'idempotency_key'   => $idempotencyKey,   // Saved so repeats can be recognised
+                    'stock_reserved_at' => now(),             // This order holds stock until it is cancelled
+                ], $items);
+
+                DB::afterCommit(fn () => $this->cache->flush()); // Availability changed: refresh public pages
+
+                return $order;
+            }, 3); // Retry up to 3 times if MySQL reports a deadlock
         } catch (UniqueConstraintViolationException $e) {
             // Two identical requests raced: the other one won, so return its order
             return ($idempotencyKey ? $this->orders->findByIdempotencyKey($user, $idempotencyKey) : null) ?? throw $e;

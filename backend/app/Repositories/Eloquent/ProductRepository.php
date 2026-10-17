@@ -17,7 +17,7 @@ class ProductRepository implements ProductRepositoryInterface
     {
             return Product::query()
             ->where('is_published', true)   // Drafts never appear on the public site
-            ->with(['category', 'photos'])                                              // load categories and photos in one query
+            ->with(['category', 'photos', 'stocks'])                                              // load categories and photos in one query
             ->when($filters->category, fn ($q, $slug) =>                    // runs only if a category was given
                 $q->whereHas('category', fn ($c) => $c->where('slug', $slug)))
             ->when($filters->featured, fn ($q) =>                           // featured only
@@ -34,7 +34,7 @@ class ProductRepository implements ProductRepositoryInterface
 
     public function findBySlug(string $slug): ?Product
     {
-        return Product::with('category', 'photos')->where('slug', $slug)->where('is_published', true)->first();
+        return Product::with('category', 'photos', 'stocks')->where('slug', $slug)->where('is_published', true)->first();
 
     }
     public function findManyByIds(array $ids): \Illuminate\Support\Collection
@@ -44,7 +44,7 @@ class ProductRepository implements ProductRepositoryInterface
 
         public function paginateForAdmin(AdminProductFilterData $filters): LengthAwarePaginator
     {
-        return Product::with(['category', 'photos'])
+        return Product::with(['category', 'photos', 'stocks']) // load categories and photos in one query
             ->when($filters->search, fn ($q, $term) => $q->where('name', 'like', "%{$term}%"))
             ->when($filters->category, fn ($q, $slug) => $q->whereHas('category', fn ($c) => $c->where('slug', $slug)))
             ->when($filters->published !== null, fn ($q) => $q->where('is_published', $filters->published)) // Drafts or live
@@ -55,7 +55,7 @@ class ProductRepository implements ProductRepositoryInterface
 
     public function findForAdmin(int $id): ?Product
     {
-        return Product::with(['category', 'photos'])->find($id); // Soft-deleted ones are skipped automatically
+        return Product::with(['category', 'photos', 'stocks'])->find($id); // Soft-deleted ones are skipped automatically
     }
 
     public function lockById(int $id): ?Product
