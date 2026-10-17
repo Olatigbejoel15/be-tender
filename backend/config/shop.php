@@ -10,5 +10,7 @@ return [
     'low_stock_threshold' => 5, // At or below this, an option shows in the low-stock list
     'pending_order_minutes' => (int) env('PENDING_ORDER_MINUTES', 60), // Unpaid orders older than this are cancelled
     'staff_alert_email' => env('STAFF_ALERT_EMAIL'), // Gets a note for each new paid order (null = no alert)
+    'timezone' => 'Africa/Lagos',                                          // Days on the charts follow this zone
+    'analytics_cache_ttl' => (int) env('ANALYTICS_CACHE_TTL', 60),         // Seconds (0 = no cache, handy while testing)
 ];
 

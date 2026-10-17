@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\V1\Admin\OrderController as AdminOrderController;
 use App\Http\Controllers\Api\V1\Admin\AuditLogController;
 use App\Http\Controllers\Api\V1\Admin\ProductController as AdminProductController;
 use App\Http\Controllers\Api\V1\Admin\StockController as AdminStockController;
+use App\Http\Controllers\Api\V1\Admin\AnalyticsController as AdminAnalyticsController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Resources\UserResource;
@@ -50,6 +51,13 @@ Route::prefix('v1')->group(function () {
         Route::get('/products/{id}/stock', [AdminStockController::class, 'show'])->whereNumber('id');    // Stock matrix
         Route::patch('/products/{id}/stock', [AdminStockController::class, 'update'])->whereNumber('id'); // Set / add stock
         Route::get('/stock/low', [AdminStockController::class, 'low']);                                    // Running low
+
+        Route::prefix('analytics')->group(function () {
+        Route::get('/summary', [AdminAnalyticsController::class, 'summary']);          // Totals + comparison
+        Route::get('/revenue', [AdminAnalyticsController::class, 'revenue']);          // Daily chart data
+        Route::get('/top-products', [AdminAnalyticsController::class, 'topProducts']); // Best sellers
+        
+        });
     });    // 5 tries a minute
 
     Route::middleware('auth:sanctum')->group(function () { // everything inside needs a valid token
@@ -63,5 +71,6 @@ Route::prefix('v1')->group(function () {
         Route::post('/orders/{reference}/pay', [PaymentController::class, 'pay'])->middleware('throttle:10,1');         // Start payment
         Route::post('/orders/{reference}/confirm', [PaymentController::class, 'confirm'])->middleware('throttle:20,1'); // Check payment
     });
+
 
 });

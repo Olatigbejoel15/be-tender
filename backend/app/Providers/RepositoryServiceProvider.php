@@ -17,6 +17,8 @@ use App\Services\Contracts\PaymentGatewayInterface;
 use App\Services\Payments\PaystackGateway;
 use App\Repositories\Contracts\StockRepositoryInterface;
 use App\Repositories\Eloquent\StockRepository;
+use App\Repositories\Contracts\AnalyticsRepositoryInterface;
+use App\Repositories\Eloquent\AnalyticsRepository;
 
 class RepositoryServiceProvider extends ServiceProvider
 {
@@ -32,5 +34,6 @@ class RepositoryServiceProvider extends ServiceProvider
         UserRepositoryInterface::class => UserRepository::class, // Users come from Eloquent
         OrderRepositoryInterface::class => OrderRepository::class, // Orders come from Eloquent
         StockRepositoryInterface::class => StockRepository::class, // Stock comes from Eloquent
+        AnalyticsRepositoryInterface::class => AnalyticsRepository::class, // Reports come from Eloquent queries
     ];
 }

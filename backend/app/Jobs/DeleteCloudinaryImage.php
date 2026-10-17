@@ -2,8 +2,10 @@
 
 namespace App\Jobs;
 
-// keep the generated use lines (ShouldQueue, Queueable...), then add:
-use App\Services\Images\ImageUploaderInterface; // <-- copy the real namespace from AdminProductService
+use Illuminate\Contracts\Queue\ShouldQueue;
+use App\Services\Contracts\ImageUploaderInterface;
+
+
 
 class DeleteCloudinaryImage implements ShouldQueue
 {
