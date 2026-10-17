@@ -9,5 +9,6 @@ return [
     'catalogue_cache_ttl' => (int) env('CATALOGUE_CACHE_TTL', 600), // Seconds to keep catalogue data (0 turns caching off)
     'low_stock_threshold' => 5, // At or below this, an option shows in the low-stock list
     'pending_order_minutes' => (int) env('PENDING_ORDER_MINUTES', 60), // Unpaid orders older than this are cancelled
+    'staff_alert_email' => env('STAFF_ALERT_EMAIL'), // Gets a note for each new paid order (null = no alert)
 ];
 

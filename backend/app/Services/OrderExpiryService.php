@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\OrderStatus;
 use App\Repositories\Contracts\OrderRepositoryInterface;
 use Illuminate\Support\Facades\DB;
+use App\Events\OrderStatusChanged;
 
 class OrderExpiryService
 {
@@ -30,6 +31,8 @@ class OrderExpiryService
 
                 $this->orders->recordStatus($order, OrderStatus::Cancelled, null, "Expired: not paid within {$minutes} minutes"); // null = System
                 $this->stock->release($order);                         // Stock back on the shelf
+
+                OrderStatusChanged::dispatch($order, OrderStatus::Cancelled); // Tell the customer
 
                 return true;
             }, 3);

@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use App\Events\OrderStatusChanged;
 
 
 class AdminOrderService
@@ -44,6 +45,7 @@ class AdminOrderService
             }
 
             $this->orders->recordStatus($order, $to, $actor, $note);
+            OrderStatusChanged::dispatch($order, $to); // Emails the customer for shipped / delivered / cancelled
             if ($to === OrderStatus::Cancelled) {
                 $this->stock->release($order);                       // Items go back on the shelf (only if this order took stock)
                 DB::afterCommit(fn () => $this->cache->flush());     // Public pages show them again

@@ -17,6 +17,7 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 use Throwable;
+use App\Jobs\DeleteCloudinaryImage;
 
 class AdminProductService
 {
@@ -135,7 +136,7 @@ class AdminProductService
         });
 
         try {
-            $this->uploader->delete($photo->public_id);                         // After the DB commit; a failure only leaves an orphan file
+            dispatch(new DeleteCloudinaryImage($photo->public_id)); // Cloudinary cleanup runs in the background
         } catch (Throwable $e) {
             Log::warning('Could not delete Cloudinary image', ['public_id' => $photo->public_id, 'error' => $e->getMessage()]);
         }

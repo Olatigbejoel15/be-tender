@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\OrderStatus;
 use App\Models\Order;
 use App\Models\User;
+use App\Events\OrderPaid;
 use App\Repositories\Contracts\OrderRepositoryInterface;
 use App\Services\Contracts\PaymentGatewayInterface;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -98,7 +99,8 @@ class PaymentService
             Log::warning('Payment amount mismatch', ['order' => $order->reference]); // Suspicious: do not mark paid
             return;
         }
-
+        // inside settle(), where markPaid reports that THIS call made the order paid:
+        OrderPaid::dispatch($order);
         $this->orders->markPaid($order, $paymentReference); // Safe to call twice
     }
 }
