@@ -19,6 +19,8 @@ use App\Repositories\Contracts\StockRepositoryInterface;
 use App\Repositories\Eloquent\StockRepository;
 use App\Repositories\Contracts\AnalyticsRepositoryInterface;
 use App\Repositories\Eloquent\AnalyticsRepository;
+use App\Repositories\Contracts\StaffRepositoryInterface;
+use App\Repositories\Eloquent\StaffRepository;
 
 class RepositoryServiceProvider extends ServiceProvider
 {
@@ -35,5 +37,6 @@ class RepositoryServiceProvider extends ServiceProvider
         OrderRepositoryInterface::class => OrderRepository::class, // Orders come from Eloquent
         StockRepositoryInterface::class => StockRepository::class, // Stock comes from Eloquent
         AnalyticsRepositoryInterface::class => AnalyticsRepository::class, // Reports come from Eloquent queries
+        StaffRepositoryInterface::class => StaffRepository::class, // Staff comes from Eloquent
     ];
 }

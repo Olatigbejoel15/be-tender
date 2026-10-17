@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\V1\Admin\AuditLogController;
 use App\Http\Controllers\Api\V1\Admin\ProductController as AdminProductController;
 use App\Http\Controllers\Api\V1\Admin\StockController as AdminStockController;
 use App\Http\Controllers\Api\V1\Admin\AnalyticsController as AdminAnalyticsController;
+use App\Http\Controllers\Api\V1\Admin\StaffController as AdminStaffController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Resources\UserResource;
@@ -56,6 +57,13 @@ Route::prefix('v1')->group(function () {
         Route::get('/summary', [AdminAnalyticsController::class, 'summary']);          // Totals + comparison
         Route::get('/revenue', [AdminAnalyticsController::class, 'revenue']);          // Daily chart data
         Route::get('/top-products', [AdminAnalyticsController::class, 'topProducts']); // Best sellers
+
+        });
+
+        Route::middleware('can:manage-staff')->prefix('staff')->group(function () {        // Super admin only
+        Route::get('/', [AdminStaffController::class, 'index']);                       // List staff
+        Route::post('/', [AdminStaffController::class, 'store']);                      // Create / promote
+        Route::patch('/{id}', [AdminStaffController::class, 'update'])->whereNumber('id'); // Role / active
         
         });
     });    // 5 tries a minute
