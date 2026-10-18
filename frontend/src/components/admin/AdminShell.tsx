@@ -11,7 +11,7 @@ type NavItem = { href: string; label: string; icon: LucideIcon; superOnly?: bool
 // Set soon to false when that screen is built
 const NAV: NavItem[] = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/admin/orders", label: "Orders", icon: ShoppingBag, soon: true },
+  { href: "/admin/orders", label: "Orders", icon: ShoppingBag,  },
   { href: "/admin/products", label: "Products", icon: Package, soon: true },
   { href: "/admin/stock", label: "Stock", icon: Boxes, soon: true },
   { href: "/admin/audit-log", label: "Audit log", icon: ScrollText, superOnly: true, soon: true },

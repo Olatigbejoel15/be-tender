@@ -1,0 +1,186 @@
+﻿=== LIST: first order ===
+{
+    "reference":  "BT-J4T7HXO7",
+    "status":  "paid",
+    "statusLabel":  "Paid",
+    "subtotal":  50000,
+    "deliveryFee":  0,
+    "total":  50000,
+    "recipientName":  "Joe",
+    "phone":  "+2349012345678",
+    "address":  "651 North Broad Street",
+    "city":  "Middletown",
+    "state":  "Lagos",
+    "paidAt":  "2026-10-17T10:09:30+00:00",
+    "createdAt":  "2026-10-17T10:09:01+00:00",
+    "items":  [
+                  {
+                      "name":  "Flex Leggings",
+                      "color":  "Light Blue",
+                      "size":  "L",
+                      "image":  "https://res.cloudinary.com/dohjyratj/image/upload/v1791787987/be-tender/products/flex-leggings-light-blue.png",
+                      "unitPrice":  25000,
+                      "quantity":  2,
+                      "lineTotal":  50000
+                  }
+              ],
+    "paymentReference":  "BT-J4T7HXO7-WSEY",
+    "customer":  {
+                     "id":  2,
+                     "name":  "Joe",
+                     "email":  "joe@test.com",
+                     "phone":  null
+                 },
+    "nextStatuses":  [
+                         {
+                             "value":  "processing",
+                             "label":  "Processing"
+                         },
+                         {
+                             "value":  "cancelled",
+                             "label":  "Cancelled"
+                         }
+                     ]
+}
+=== LIST: meta ===
+{
+    "current_page":  1,
+    "from":  1,
+    "last_page":  1,
+    "links":  [
+                  {
+                      "url":  null,
+                      "label":  "\u0026laquo; Previous",
+                      "page":  null,
+                      "active":  false
+                  },
+                  {
+                      "url":  "http://127.0.0.1:8000/api/v1/admin/orders?page=1",
+                      "label":  "1",
+                      "page":  1,
+                      "active":  true
+                  },
+                  {
+                      "url":  null,
+                      "label":  "Next \u0026raquo;",
+                      "page":  null,
+                      "active":  false
+                  }
+              ],
+    "path":  "http://127.0.0.1:8000/api/v1/admin/orders",
+    "per_page":  15,
+    "to":  15,
+    "total":  15
+}
+=== LIST: links ===
+{
+    "first":  "http://127.0.0.1:8000/api/v1/admin/orders?page=1",
+    "last":  "http://127.0.0.1:8000/api/v1/admin/orders?page=1",
+    "prev":  null,
+    "next":  null
+}
+=== DETAIL ===
+{
+    "data":  {
+                 "reference":  "BT-J4T7HXO7",
+                 "status":  "paid",
+                 "statusLabel":  "Paid",
+                 "subtotal":  50000,
+                 "deliveryFee":  0,
+                 "total":  50000,
+                 "recipientName":  "Joe",
+                 "phone":  "+2349012345678",
+                 "address":  "651 North Broad Street",
+                 "city":  "Middletown",
+                 "state":  "Lagos",
+                 "paidAt":  "2026-10-17T10:09:30+00:00",
+                 "createdAt":  "2026-10-17T10:09:01+00:00",
+                 "items":  [
+                               {
+                                   "name":  "Flex Leggings",
+                                   "color":  "Light Blue",
+                                   "size":  "L",
+                                   "image":  "https://res.cloudinary.com/dohjyratj/image/upload/v1791787987/be-tender/products/flex-leggings-light-blue.png",
+                                   "unitPrice":  25000,
+                                   "quantity":  2,
+                                   "lineTotal":  50000
+                               }
+                           ],
+                 "paymentReference":  "BT-J4T7HXO7-WSEY",
+                 "customer":  {
+                                  "id":  2,
+                                  "name":  "Joe",
+                                  "email":  "joe@test.com",
+                                  "phone":  null
+                              },
+                 "nextStatuses":  [
+                                      {
+                                          "value":  "processing",
+                                          "label":  "Processing"
+                                      },
+                                      {
+                                          "value":  "cancelled",
+                                          "label":  "Cancelled"
+                                      }
+                                  ],
+                 "history":  [
+                                 {
+                                     "from":  null,
+                                     "to":  "pending",
+                                     "toLabel":  "Awaiting payment",
+                                     "note":  "Order placed",
+                                     "by":  "Joe",
+                                     "createdAt":  "2026-10-17T10:09:01+00:00"
+                                 },
+                                 {
+                                     "from":  "pending",
+                                     "to":  "paid",
+                                     "toLabel":  "Paid",
+                                     "note":  "Payment confirmed by Paystack",
+                                     "by":  "System",
+                                     "createdAt":  "2026-10-17T10:09:30+00:00"
+                                 }
+                             ]
+             }
+}
+=== OrderIndexRequest.php ===
+<?php
+
+namespace App\Http\Requests\Admin;
+
+use App\DTOs\OrderFilterData;
+use App\Enums\OrderStatus;
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
+
+class OrderIndexRequest extends FormRequest
+{
+    public function authorize(): bool
+    {
+        return true; // The staff middleware already protects the route
+    }
+
+    public function rules(): array
+    {
+        return [
+            'status'   => ['nullable', Rule::enum(OrderStatus::class)], // Must be a real stage
+            'search'   => ['nullable', 'string', 'max:100'],
+            'from'     => ['nullable', 'date'],
+            'to'       => ['nullable', 'date', 'after_or_equal:from'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:50'],
+        ];
+    }
+
+    public function filters(): OrderFilterData
+    {
+        $v = $this->validated();
+
+        return new OrderFilterData(
+            status: isset($v['status']) ? OrderStatus::from($v['status']) : null,
+            search: $v['search'] ?? null,
+            from: $v['from'] ?? null,
+            to: $v['to'] ?? null,
+            perPage: (int) ($v['per_page'] ?? 15),
+        );
+    }
+}
