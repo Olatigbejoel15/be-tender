@@ -15,3 +15,12 @@ export default function StatusBadge({ status, label }: { status: string; label: 
   );
 }
 
+// Small grey tag for orders placed without an account
+export function GuestBadge() {
+  return (
+    <span className="ml-2 rounded-full bg-zinc-200 px-2 py-0.5 align-middle text-[10px] font-semibold text-zinc-700 uppercase">
+      Guest
+    </span>
+  );
+}
+

@@ -7,7 +7,7 @@ import { Search } from "lucide-react";
 import { ApiError } from "@/lib/authApi";
 import { listOrders, type AdminOrder, type Page } from "@/lib/adminApi";
 import { formatDateTime, naira } from "@/lib/format";
-import StatusBadge from "@/components/admin/StatusBadge";
+import StatusBadge, { GuestBadge } from "@/components/admin/StatusBadge";
 
 const STATUS_TABS = [
   { value: "", label: "All" },
@@ -136,7 +136,7 @@ export default function OrdersList() {
                           <p className="text-xs text-muted">{formatDateTime(o.createdAt)}</p>
                         </td>
                         <td className="px-5 py-4">
-                          <p className="font-medium">{o.recipientName}</p>
+                          <p className="font-medium">{o.recipientName}{o.customer.isGuest && <GuestBadge />}</p>
                           <p className="text-xs text-muted">{o.customer.email}</p>
                         </td>
                         <td className="px-5 py-4 text-right">{o.items.reduce((n, i) => n + i.quantity, 0)}</td>
@@ -157,7 +157,8 @@ export default function OrdersList() {
                         <span className="font-semibold">{o.reference}</span>
                         <StatusBadge status={o.status} label={o.statusLabel} />
                       </div>
-                      <p className="mt-2 text-sm">{o.recipientName}</p>
+                      {/* <p className="mt-2 text-sm">{o.recipientName}</p> */}
+                        <p className="mt-2 text-sm">{o.recipientName}{o.customer.isGuest && <GuestBadge />}</p>
                       <div className="mt-1 flex justify-between text-xs text-muted">
                         <span>{formatDateTime(o.createdAt)}</span>
                         <span className="font-semibold text-ink">{naira.format(o.total)}</span>

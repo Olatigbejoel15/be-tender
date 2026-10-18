@@ -53,7 +53,7 @@ export type AdminOrder = {
   createdAt: string;
   items: AdminOrderItem[];
   paymentReference: string | null;
-  customer: { id: number; name: string; email: string; phone: string | null };
+  customer: { id: number | null; name: string; email: string; phone: string | null; isGuest: boolean };
   nextStatuses: { value: string; label: string }[]; // the only moves allowed right now
   history?: OrderHistoryEntry[];                     // detail only
 };

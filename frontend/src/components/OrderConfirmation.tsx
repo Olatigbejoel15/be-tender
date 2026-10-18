@@ -1,12 +1,12 @@
-"use client"; // needs the login token and the browser address, so it runs in the browser
+"use client"; // needs the login token, session storage and the browser address
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { CheckCircle2, Clock } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { ApiError } from "@/lib/authApi";
-import { confirmPayment, getOrder, startPayment, type Order } from "@/lib/ordersApi";
+import { confirmPayment, getGuestEmail, getOrder, rememberGuestEmail, startPayment, type Order } from "@/lib/ordersApi";
 import { naira } from "@/lib/format";
 
 export default function OrderConfirmation({ reference }: { reference: string }) {
@@ -16,34 +16,57 @@ export default function OrderConfirmation({ reference }: { reference: string }) 
   const [returned, setReturned] = useState(false); // true if we just came back from Paystack
   const [busy, setBusy] = useState(false);         // true while a payment call is running
   const [payError, setPayError] = useState("");
+  const [guestEmail, setGuestEmail] = useState<string | null>(() => getGuestEmail(reference)); // guests only
+  const [emailInput, setEmailInput] = useState("");
+  const [emailError, setEmailError] = useState("");
 
   // Load the order. If Paystack just sent the customer back, confirm the payment first.
-  useEffect(() => {
-    if (!ready || !user) return;
-
+  const load = useCallback(async (email: string | null) => {
     const params = new URLSearchParams(window.location.search);
     const cameBack = params.has("reference") || params.has("trxref"); // Paystack adds these
 
-    const load = cameBack ? confirmPayment(reference) : getOrder(reference);
-    load
-      .then((o) => {
-        setOrder(o);
-        if (cameBack) {
-          setReturned(true);
-          window.history.replaceState(null, "", window.location.pathname); // tidy the address bar
-        }
-      })
-      .catch((e) =>
-        setError(e instanceof ApiError && e.status === 404 ? "We couldn't find that order." : "Could not load the order.")
-      );
-  }, [ready, user, reference]);
+    try {
+      const o = cameBack ? await confirmPayment(reference, email) : await getOrder(reference, email);
+      setOrder(o);
+      setError("");
+      if (cameBack) {
+        setReturned(true);
+        window.history.replaceState(null, "", window.location.pathname); // tidy the address bar
+      }
+    } catch (e) {
+      if (email && e instanceof ApiError && (e.status === 404 || e.status === 422)) {
+        setEmailError("That email doesn't match this order. Please try again.");
+        setGuestEmail(null); // shows the email form again
+        setOrder(null);
+      } else if (e instanceof ApiError && e.status === 404) {
+        setError("We couldn't find that order.");
+      } else {
+        setError("Could not load the order.");
+      }
+    }
+  }, [reference]);
+
+  useEffect(() => {
+    if (!ready) return;
+    if (user) load(null);                    // signed in: account route
+    else if (guestEmail) load(guestEmail);   // guest with a known email
+  }, [ready, user, guestEmail, load]);
+
+  // Guest typed their email
+  const submitEmail = (e: React.FormEvent) => {
+    e.preventDefault();
+    const clean = emailInput.trim().toLowerCase();
+    setEmailError("");
+    rememberGuestEmail(reference, clean);
+    setGuestEmail(clean); // the effect above loads the order
+  };
 
   // Send the customer to Paystack to pay
   const pay = async () => {
     setPayError("");
     setBusy(true);
     try {
-      window.location.href = await startPayment(reference); // leaves our site for Paystack's page
+      window.location.href = await startPayment(reference, user ? null : guestEmail); // leaves our site for Paystack's page
     } catch (e) {
       setPayError(e instanceof ApiError ? e.message : "Could not start the payment. Please try again.");
       setBusy(false);
@@ -55,7 +78,7 @@ export default function OrderConfirmation({ reference }: { reference: string }) 
     setPayError("");
     setBusy(true);
     try {
-      setOrder(await confirmPayment(reference));
+      setOrder(await confirmPayment(reference, user ? null : guestEmail));
     } catch (e) {
       setPayError(e instanceof ApiError ? e.message : "Could not check the payment. Please try again.");
     }
@@ -63,8 +86,38 @@ export default function OrderConfirmation({ reference }: { reference: string }) 
   };
 
   if (!ready) return <p className="text-muted">Loading...</p>;
-  if (!user) return <p>Please <Link href="/login" className="underline">sign in</Link> to view this order.</p>;
-  if (error) return <p className="text-red-600">{error}</p>;
+
+  // Guest on a new device or tab: prove ownership with the order's email
+  if (!user && !guestEmail) {
+    return (
+      <form onSubmit={submitEmail} className="max-w-md space-y-4 rounded-3xl border border-black/10 p-6">
+        <p className="text-lg font-semibold">Confirm your email</p>
+        <p className="text-sm text-muted">
+          Enter the email you used for order <strong className="text-ink">{reference}</strong>. Or{" "}
+          <Link href="/login" className="underline underline-offset-4">sign in</Link> if you have an account.
+        </p>
+        <input
+          type="email" required value={emailInput} onChange={(e) => setEmailInput(e.target.value)} placeholder="you@example.com"
+          className="w-full rounded-xl border border-ink/15 bg-white px-4 py-3.5 text-sm outline-none focus:border-accent focus:ring-4 focus:ring-accent/10"
+        />
+        {emailError && <p role="alert" className="text-sm text-red-600">{emailError}</p>}
+        <button type="submit" className="rounded-full bg-ink px-8 py-3.5 text-sm font-semibold tracking-[0.15em] text-white uppercase">
+          View order
+        </button>
+      </form>
+    );
+  }
+
+  if (error) {
+    return (
+      <div>
+        <p className="text-red-600">{error}</p>
+        <p className="mt-2 text-sm text-muted">
+          Ordered as a guest? <Link href="/track" className="underline underline-offset-4">Track it with your email</Link>.
+        </p>
+      </div>
+    );
+  }
   if (!order) return <p className="text-muted">{window.location.search ? "Confirming your payment..." : "Loading your order..."}</p>;
 
   const isPending = order.status === "pending";
@@ -108,6 +161,7 @@ export default function OrderConfirmation({ reference }: { reference: string }) 
             <p className="text-sm text-muted">
               Reference <strong className="text-ink">{order.reference}</strong> · {order.statusLabel}
             </p>
+            <p className="mt-1 text-sm text-muted">We send updates to <strong className="text-ink">{order.email}</strong>.</p>
           </div>
         </div>
       )}
@@ -116,7 +170,7 @@ export default function OrderConfirmation({ reference }: { reference: string }) 
         {order.items.map((i, n) => (
           <li key={n} className="flex gap-4 py-5">
             <div className="relative h-20 w-16 shrink-0 overflow-hidden rounded-lg bg-sand">
-              <Image src={i.image} alt={i.name} fill sizes="64px" className="object-cover" />
+              {i.image && <Image src={i.image} alt={i.name} fill sizes="64px" className="object-cover" />}
             </div>
             <div className="min-w-0 flex-1 text-sm">
               <p className="font-medium">{i.name}</p>

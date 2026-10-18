@@ -8,7 +8,7 @@ import { motion } from "framer-motion";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { ApiError } from "@/lib/authApi";
-import { placeOrder } from "@/lib/ordersApi";
+import { placeOrder, rememberGuestEmail } from "@/lib/ordersApi";
 import { naira } from "@/lib/format";
 
 // Nigeria's 36 states + FCT (the API charges delivery by state)
@@ -25,6 +25,7 @@ export default function CheckoutForm() {
   const { items, subtotal, clearCart } = useCart();
   const { user, ready } = useAuth();
 
+  const [email, setEmail] = useState(""); // guests only
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
@@ -59,27 +60,15 @@ export default function CheckoutForm() {
     );
   }
 
-  // Orders belong to an account, so ask the customer to sign in first
-  if (!user) {
-    return (
-      <div className="max-w-md rounded-3xl border border-black/10 p-8">
-        <p className="text-lg font-semibold">Sign in to place your order</p>
-        <p className="mt-1 text-sm text-muted">Your cart is saved and will be here when you come back.</p>
-        <div className="mt-6 flex flex-wrap gap-3">
-          <Link href="/login" className="rounded-full bg-ink px-8 py-3.5 text-sm font-semibold tracking-[0.15em] text-white uppercase">Sign in</Link>
-          <Link href="/register" className="rounded-full border border-ink/15 px-8 py-3.5 text-sm font-semibold tracking-[0.15em] uppercase">Create account</Link>
-        </div>
-      </div>
-    );
-  }
-
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setFields({});
     setBusy(true);
     try {
+      const guestEmail = email.trim().toLowerCase();
       const order = await placeOrder({
+        ...(user ? {} : { email: guestEmail }), // signed-in: the server uses the account email
         recipient_name: name.trim(),
         phone: phone.trim(),
         address: address.trim(),
@@ -88,6 +77,8 @@ export default function CheckoutForm() {
         // map cart lines to what the API expects (no prices are sent)
         items: items.map((i) => ({ product_id: i.productId, color: i.color, size: i.size, quantity: i.qty })),
       }, attemptKey);
+
+      if (!user) rememberGuestEmail(order.reference, guestEmail); // lets the Paystack return page prove who they are
       setPlaced(true);
       clearCart(); // the order exists now, so empty the cart
       router.push(`/order/${order.reference}`);
@@ -115,6 +106,24 @@ export default function CheckoutForm() {
       {/* Delivery details */}
       <form onSubmit={submit} className="space-y-5 rounded-3xl border border-black/5 bg-white p-6 shadow-xl sm:p-10 lg:col-span-3">
         <h2 className="text-xl font-semibold">Delivery details</h2>
+
+        {user ? (
+          <p className="text-sm text-muted">Receipts and updates go to <strong className="text-ink">{user.email}</strong>.</p>
+        ) : (
+          <p className="rounded-xl bg-accent/10 p-3 text-sm">
+            Checking out as a guest, no account needed.{" "}
+            <Link href="/login" className="font-semibold underline underline-offset-4">Have an account? Log in</Link>
+          </p>
+        )}
+
+        {!user && (
+          <div>
+            <label htmlFor="email" className={label}>Email</label>
+            <input id="email" type="email" required className={input} placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
+            {err("email")}
+            <p className="mt-1 text-xs text-muted">We send your receipt and delivery updates here.</p>
+          </div>
+        )}
 
         <div>
           <label htmlFor="name" className={label}>Full name</label>
@@ -152,7 +161,7 @@ export default function CheckoutForm() {
             {itemErrors.map((m) => <li key={m}>{m}</li>)}
           </ul>
         )}
-        {error && itemErrors.length === 0 && <p className="text-sm text-red-600">{error}</p>}
+        {error && itemErrors.length === 0 && <p role="alert" className="text-sm text-red-600">{error}</p>}
 
         <motion.button
           type="submit"

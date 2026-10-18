@@ -8,7 +8,7 @@ import { ArrowLeft } from "lucide-react";
 import { ApiError } from "@/lib/authApi";
 import { changeOrderStatus, getOrder, type AdminOrder } from "@/lib/adminApi";
 import { formatDateTime, naira } from "@/lib/format";
-import StatusBadge from "@/components/admin/StatusBadge";
+import StatusBadge, { GuestBadge } from "@/components/admin/StatusBadge";
 import ConfirmDialog from "@/components/admin/ConfirmDialog";
 
 // A white card with a title
@@ -168,7 +168,8 @@ export default function OrderDetail() {
 
           <Card title="Customer and payment">
             <dl className="space-y-3 text-sm">
-              <div><dt className="text-xs text-muted">Customer</dt><dd className="font-medium">{order.customer.name}</dd></div>
+              {/* <div><dt className="text-xs text-muted">Customer</dt><dd className="font-medium">{order.customer.name}</dd></div> */}
+                <div><dt className="text-xs text-muted">Customer</dt><dd className="font-medium">{order.customer.name}{order.customer.isGuest && <GuestBadge />}</dd></div>
               <div><dt className="text-xs text-muted">Email</dt>
                 <dd><a href={`mailto:${order.customer.email}`} className="underline underline-offset-4 hover:text-accent">{order.customer.email}</a></dd></div>
               <div><dt className="text-xs text-muted">Payment reference</dt><dd className="font-mono text-xs break-all">{order.paymentReference ?? "None yet"}</dd></div>
