@@ -13,7 +13,7 @@ export default function ProductCard({ product, index }: { product: Product; inde
     <motion.article
       initial={{ opacity: 0, y: 40 }} // start: invisible, 40px lower
       whileInView={{ opacity: 1, y: 0 }} // animate when it scrolls into view
-      viewport={{ once: true, margin: "-60px" }}
+      viewport={{ once: true, amount: 0.05 }} // fires as soon as 5% of the card is on screen (no negative margin)
       transition={{ duration: 0.6, delay: index * 0.1, ease: "easeOut" }}
       className="group" // lets children react when the CARD is hovered
     >

@@ -4,3 +4,7 @@ export const naira = new Intl.NumberFormat("en-NG", {
   currency: "NGN",
   maximumFractionDigits: 0, // no kobo decimals
 });
+
+// "2026-10-17" -> "17 Oct" (used on charts and tables)
+export const formatDay = (iso: string) =>
+  new Date(`${iso}T00:00:00`).toLocaleDateString("en-NG", { day: "numeric", month: "short" });

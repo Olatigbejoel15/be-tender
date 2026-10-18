@@ -3,9 +3,9 @@
 namespace App\Services;
 
 use App\DTOs\ProductFilterData;
+use App\Http\Resources\ProductResource;
 use App\Models\Product;
 use App\Repositories\Contracts\ProductRepositoryInterface;
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class ProductService
@@ -15,20 +15,28 @@ class ProductService
         private CatalogueCache $cache,                // our versioned cache
     ) {}
 
-    public function list(ProductFilterData $filters): Collection
+    // Returns the finished JSON-ready list (small to cache), not Eloquent models (huge to cache)
+    public function list(ProductFilterData $filters): array
     {
+        $build = fn () => ProductResource::collection($this->products->getFiltered($filters))->resolve();
+
         if ($filters->search !== null) {
-            return $this->products->getFiltered($filters); // Never cache free-text searches (cache flooding)
+            return $build(); // Never cache free-text searches (cache flooding)
         }
 
-        $key = 'products:' . md5(json_encode([$filters->category, $filters->featured, $filters->sort?->value]));
+        $key = 'products:v2:' . md5(json_encode([$filters->category, $filters->featured, $filters->sort?->value]));
 
-        return $this->cache->remember($key, fn () => $this->products->getFiltered($filters));
+        return $this->cache->remember($key, $build);
     }
 
-    public function findBySlug(string $slug): Product
+    // One product as JSON-ready data
+    public function findBySlug(string $slug): array
     {
-        return $this->cache->remember("product:{$slug}", fn () => $this->products->findBySlug($slug)
-            ?? throw (new ModelNotFoundException)->setModel(Product::class, [$slug])); // A 404 is never cached
+        return $this->cache->remember("product:v2:{$slug}", function () use ($slug) {
+            $product = $this->products->findBySlug($slug)
+                ?? throw (new ModelNotFoundException)->setModel(Product::class, [$slug]); // A 404 is never cached
+
+            return (new ProductResource($product))->resolve();
+        });
     }
 }

@@ -17,8 +17,8 @@ export default function LoginForm() {
   const [busy, setBusy] = useState(false); // true while we wait for the API
 
   // Signed in (just now, or already before)? Go to the account page.
-  useEffect(() => {
-    if (user) router.replace("/account");
+      useEffect(() => {
+    if (user) router.replace(user.role === "customer" ? "/account" : "/admin"); // staff go to the admin area
   }, [user, router]);
 
   const submit = async (e: React.FormEvent) => {

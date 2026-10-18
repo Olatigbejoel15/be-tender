@@ -15,6 +15,7 @@ class UserResource extends JsonResource
             'email'     => $this->email,
             'phone'     => $this->phone,'role'      => $this->role?->value ?? 'customer', // The frontend uses this to show/hide admin links
             'createdAt' => $this->created_at?->toIso8601String(),
+            'role'      => $this->role->value, // "customer" | "admin" | "super_admin" (the UI uses it to choose screens)
         ]; // Never include the password hash
     }
 }

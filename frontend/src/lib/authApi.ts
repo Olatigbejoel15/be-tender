@@ -8,6 +8,7 @@ export type User = {
   name: string;
   email: string;
   phone: string | null;
+  role: "customer" | "admin" | "super_admin"; // decides storefront vs admin
   createdAt: string;
 };
 
@@ -29,7 +30,7 @@ export class ApiError extends Error {
 // One helper for every call: adds the JSON headers and the token, and turns failures into ApiError
   export async function call<T>(
   path: string,
-  method: "GET" | "POST",
+  method: "GET" | "POST" | "PATCH" | "DELETE",
   token: string | null = null,
   body?: unknown,
   extraHeaders: Record<string, string> = {} // e.g. the Idempotency-Key
