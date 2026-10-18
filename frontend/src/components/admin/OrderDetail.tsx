@@ -9,6 +9,7 @@ import { ApiError } from "@/lib/authApi";
 import { changeOrderStatus, getOrder, type AdminOrder } from "@/lib/adminApi";
 import { formatDateTime, naira } from "@/lib/format";
 import StatusBadge from "@/components/admin/StatusBadge";
+import ConfirmDialog from "@/components/admin/ConfirmDialog";
 
 // A white card with a title
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
@@ -29,6 +30,7 @@ export default function OrderDetail() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");    // success note
   const [formError, setFormError] = useState(""); // problem changing status
+  const [confirming, setConfirming] = useState(false); // cancel dialog open?
 
   const load = useCallback(async () => {
     try {
@@ -45,11 +47,10 @@ export default function OrderDetail() {
     load();
   }, [load]);
 
-  const submit = async () => {
+    // Does the actual update
+  const run = async () => {
     if (!order || !choice) return;
     const label = order.nextStatuses.find((s) => s.value === choice)?.label ?? choice;
-
-    if (choice === "cancelled" && !window.confirm("Cancel this order? Its stock goes back on the shelf and the customer is emailed.")) return;
 
     setSaving(true);
     setFormError("");
@@ -61,9 +62,16 @@ export default function OrderDetail() {
     } catch (e) {
       setFormError(e instanceof ApiError ? (e.fields.status?.[0] ?? e.message) : "Could not update the order.");
     } finally {
-      await load(); // always show what the server really holds (someone else may have changed it)
+      await load(); // always show what the server really holds
       setSaving(false);
+      setConfirming(false);
     }
+  };
+
+  // Cancelling asks first (in the dialog); every other move goes straight through
+  const submit = () => {
+    if (choice === "cancelled") setConfirming(true);
+    else run();
   };
 
   if (error) {
@@ -182,6 +190,20 @@ export default function OrderDetail() {
           </Card>
         </div>
       </div>
+            <ConfirmDialog
+        open={confirming}
+        danger
+        busy={saving}
+        title="Cancel this order?"
+        message={
+          order.paidAt
+            ? "This order is already paid. Cancelling puts its stock back on the shelf and emails the customer, but does not refund them automatically: refund it in your Paystack dashboard."
+            : "Its stock goes back on the shelf and the customer is emailed. This cannot be undone."
+        }
+        confirmLabel="Yes, cancel order"
+        onConfirm={run}
+        onCancel={() => setConfirming(false)}
+      />
     </div>
   );
 }

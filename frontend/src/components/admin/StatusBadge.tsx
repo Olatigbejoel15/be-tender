@@ -14,3 +14,4 @@ export default function StatusBadge({ status, label }: { status: string; label: 
     </span>
   );
 }
+
