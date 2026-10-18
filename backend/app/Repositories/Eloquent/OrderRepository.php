@@ -2,31 +2,32 @@
 
 namespace App\Repositories\Eloquent;
 
+use App\DTOs\OrderFilterData;
+use App\Enums\OrderStatus;
 use App\Models\Order;
+use App\Models\OrderStatusHistory;
 use App\Models\User;
 use App\Repositories\Contracts\OrderRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
-use App\Enums\OrderStatus;
-use App\Models\OrderStatusHistory;
-use App\DTOs\OrderFilterData;
-use Illuminate\Pagination\LengthAwarePaginator;
 
 class OrderRepository implements OrderRepositoryInterface
 {
-    public function create(User $user, array $attributes, array $items): Order
+    public function create(?User $user, array $attributes, array $items): Order
     {
         return DB::transaction(function () use ($user, $attributes, $items) { // If anything fails, nothing is saved
             $order = Order::create([
                 ...$attributes,
-                'user_id'   => $user->id,
+                'user_id'   => $user?->id,         // null = guest
                 'reference' => $this->newReference(),
             ]);
 
             $order->items()->createMany($items); // One row per cart line
             $order->statusHistories()->create([
-            'user_id' => $user->id, 'from_status' => null, 'to_status' => $order->status, 'note' => 'Order placed',
+                'user_id' => $user?->id, 'from_status' => null, 'to_status' => $order->status,
+                'note' => $user ? 'Order placed' : 'Order placed (guest checkout)',
             ]); // First entry in the timeline
 
             return $order->load('items');
@@ -46,6 +47,23 @@ class OrderRepository implements OrderRepositoryInterface
             ->first();
     }
 
+    public function findForCustomer(?User $user, ?string $email, string $reference): ?Order
+    {
+        if ($user) {
+            return $this->findForUser($user, $reference);               // Account owner
+        }
+
+        if (! $email) {
+            return null;                                                // A guest must give the email
+        }
+
+        return Order::with('items')
+            ->whereNull('user_id')                                      // Guest orders only
+            ->where('reference', $reference)
+            ->where('email', $email)                                    // Wrong email = same as "not found"
+            ->first();
+    }
+
     // A short readable code like BT-7K3M9QXA, checked for uniqueness
     private function newReference(): string
     {
@@ -56,7 +74,7 @@ class OrderRepository implements OrderRepositoryInterface
         return $reference;
     }
 
-        public function findByReference(string $reference): ?Order
+    public function findByReference(string $reference): ?Order
     {
         return Order::with('items')->where('reference', $reference)->first();
     }
@@ -66,7 +84,7 @@ class OrderRepository implements OrderRepositoryInterface
         $order->update(['payment_reference' => $paymentReference]);
     }
 
-        public function markPaid(Order $order, string $paymentReference): bool
+    public function markPaid(Order $order, string $paymentReference): bool
     {
         return DB::transaction(function () use ($order, $paymentReference) { // Status + history saved together
             $changed = Order::where('id', $order->id)
@@ -89,15 +107,22 @@ class OrderRepository implements OrderRepositoryInterface
         });
     }
 
-        public function findByIdempotencyKey(User $user, string $key): ?Order
+    public function findByIdempotencyKey(?User $user, string $email, string $key): ?Order
     {
-        return Order::with('items')
-            ->where('user_id', $user->id)       // Keys are per customer
-            ->where('idempotency_key', $key)
-            ->first();
+        $query = Order::with('items')->where('idempotency_key', $key);
+
+        return ($user
+            ? $query->where('user_id', $user->id)                       // Keys are per customer
+            : $query->whereNull('user_id')->where('email', $email)      // Guests: per email
+        )->first();
     }
 
-        public function paginateForAdmin(OrderFilterData $filters): LengthAwarePaginator
+    public function countPendingForEmail(string $email): int
+    {
+        return Order::where('email', $email)->where('status', OrderStatus::Pending)->count();
+    }
+
+    public function paginateForAdmin(OrderFilterData $filters): LengthAwarePaginator
     {
         return Order::with(['items', 'user'])
             ->when($filters->status, fn ($q, $status) => $q->where('status', $status->value)) // By stage
@@ -106,7 +131,7 @@ class OrderRepository implements OrderRepositoryInterface
                     $w->where('reference', 'like', "%{$term}%")
                       ->orWhere('recipient_name', 'like', "%{$term}%")
                       ->orWhere('phone', 'like', "%{$term}%")
-                      ->orWhereHas('user', fn ($u) => $u->where('email', 'like', "%{$term}%"));
+                      ->orWhere('email', 'like', "%{$term}%");                                 // Works for guests too
                 });
             })
             ->when($filters->from, fn ($q, $date) => $q->whereDate('created_at', '>=', $date)) // From date
@@ -125,7 +150,6 @@ class OrderRepository implements OrderRepositoryInterface
         return Order::where('reference', $reference)->lockForUpdate()->first(); // Others wait until our transaction ends
     }
 
-    // public function recordStatus(Order $order, OrderStatus $to, User $actor, ?string $note): void
     public function recordStatus(Order $order, OrderStatus $to, ?User $actor, ?string $note): void
     {
         $from = $order->status;                       // Remember where it was
@@ -135,7 +159,7 @@ class OrderRepository implements OrderRepositoryInterface
         ]);
     }
 
-        public function expiredPendingReferences(\Carbon\CarbonInterface $before, int $limit): array
+    public function expiredPendingReferences(\Carbon\CarbonInterface $before, int $limit): array
     {
         return Order::where('status', OrderStatus::Pending)
             ->where('created_at', '<', $before)

@@ -11,6 +11,7 @@ class OrderResource extends JsonResource
     {
         return [
             'reference'     => $this->reference,
+            'email'         => $this->email, // Where receipts go
             'status'        => $this->status->value,
             'statusLabel'   => $this->status->label(),
             'subtotal'      => $this->subtotal,

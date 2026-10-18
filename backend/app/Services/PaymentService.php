@@ -20,10 +20,10 @@ class PaymentService
         private OrderRepositoryInterface $orders,
     ) {}
 
-    // Start paying for one of my pending orders; returns the Paystack page URL
-    public function start(User $user, string $reference): string
+    // Start paying for a pending order (mine, or a guest order with the right email); returns the Paystack page URL
+    public function start(?User $user, string $reference, ?string $email): string
     {
-        $order = $this->orders->findForUser($user, $reference) ?? throw new ModelNotFoundException(); // 404 if not mine
+        $order = $this->orders->findForCustomer($user, $email, $reference) ?? throw new ModelNotFoundException(); // 404 if not theirs
 
         if ($order->status !== OrderStatus::Pending) {
             throw ValidationException::withMessages(['order' => ['This order is not awaiting payment.']]);
@@ -34,7 +34,7 @@ class PaymentService
         $url = $this->gateway->initialize(
             $paymentReference,
             $order->total * 100,                                       // Naira to kobo
-            $user->email,
+            $order->email,                                             // The order's own email (works for guests)
             config('shop.frontend_url') . "/order/{$order->reference}", // Customer returns here
             ['order_reference' => $order->reference],
         );
@@ -45,15 +45,15 @@ class PaymentService
     }
 
     // Customer came back: check with Paystack and update the order if paid
-    public function confirm(User $user, string $reference): Order
+    public function confirm(?User $user, string $reference, ?string $email): Order
     {
-        $order = $this->orders->findForUser($user, $reference) ?? throw new ModelNotFoundException();
+        $order = $this->orders->findForCustomer($user, $email, $reference) ?? throw new ModelNotFoundException();
 
         if ($order->status === OrderStatus::Pending && $order->payment_reference) {
             $this->settle($order, $order->payment_reference);
         }
 
-        return $this->orders->findForUser($user, $reference); // Reload with the new status
+        return $this->orders->findForCustomer($user, $email, $reference); // Reload with the new status
     }
 
     // Paystack called us: verify the signature, then settle the order
@@ -99,8 +99,9 @@ class PaymentService
             Log::warning('Payment amount mismatch', ['order' => $order->reference]); // Suspicious: do not mark paid
             return;
         }
-        // inside settle(), where markPaid reports that THIS call made the order paid:
-        OrderPaid::dispatch($order);
-        $this->orders->markPaid($order, $paymentReference); // Safe to call twice
+
+        if ($this->orders->markPaid($order, $paymentReference)) { // True only for the call that really flipped it
+            OrderPaid::dispatch($order);                           // So the emails go out exactly once
+        }
     }
 }

@@ -11,7 +11,7 @@ class SendOrderStatusEmail
 {
     public function handle(OrderStatusChanged $event): void
     {
-        $order = $event->order->loadMissing('user', 'items');
+        $order = $event->order->loadMissing('items');
 
         $copy = match ($event->to) {                                // Only these changes email the customer
             OrderStatus::Shipped   => ['Your order is on its way', 'Your order has shipped. It should reach you soon.'],
@@ -20,11 +20,11 @@ class SendOrderStatusEmail
             default                => null,
         };
 
-        if ($copy === null || ! $order->user) {
+        if ($copy === null || ! $order->email) {
             return;
         }
 
-        Mail::to($order->user->email)->send(new OrderUpdateMail(
+        Mail::to($order->email)->send(new OrderUpdateMail(
             $order, "{$copy[0]} ({$order->reference})", $copy[0], $copy[1],
         ));
     }

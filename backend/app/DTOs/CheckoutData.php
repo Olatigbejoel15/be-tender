@@ -12,5 +12,6 @@ final readonly class CheckoutData
         public string $city,
         public string $state,         // Decides the delivery fee
         public array $lines,          // The cart lines
+        public string $email,         // Receipt and payment email (guest or account)
     ) {}
 }

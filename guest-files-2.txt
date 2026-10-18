@@ -1,0 +1,456 @@
+
+===== C:\Users\DELL\Desktop\be-tender\frontend\src\app\order\[reference]\page.tsx =====
+import type { Metadata } from "next";
+import PageShell from "@/components/PageShell";
+import OrderConfirmation from "@/components/OrderConfirmation";
+
+export const metadata: Metadata = {
+  title: "Your order | BE TENDER",
+};
+
+// Next.js 15+ passes route params as a Promise
+export default async function OrderPage({ params }: { params: Promise<{ reference: string }> }) {
+  const { reference } = await params;
+  return (
+    <PageShell eyebrow="Order" title="Thank you">
+      <OrderConfirmation reference={reference} />
+    </PageShell>
+  );
+}
+
+===== C:\Users\DELL\Desktop\be-tender\frontend\src\components\AccountOrders.tsx =====
+"use client"; // fetches with the login token, so it runs in the browser
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { Package } from "lucide-react";
+import { listOrders, type Order } from "@/lib/ordersApi";
+import { naira } from "@/lib/format";
+
+export default function AccountOrders() {
+  const [orders, setOrders] = useState<Order[] | null>(null); // null = still loading
+  const [error, setError] = useState("");
+
+  // Load this customer's orders once
+  useEffect(() => {
+    listOrders()
+      .then(setOrders)
+      .catch(() => setError("Could not load your orders."));
+  }, []);
+
+  if (error) return <p className="text-sm text-red-600">{error}</p>;
+  if (!orders) return <p className="text-sm text-muted">Loading your orders...</p>;
+
+  // No orders yet: the friendly empty state
+  if (orders.length === 0) {
+    return (
+      <section className="flex flex-col items-center justify-center rounded-3xl border border-black/10 px-6 py-12 text-center">
+        <span className="flex h-14 w-14 items-center justify-center rounded-full bg-accent/10 text-accent">
+          <Package size={24} />
+        </span>
+        <p className="mt-4 text-lg font-semibold">No orders yet</p>
+        <p className="mt-1 max-w-xs text-sm text-muted">Your orders will show up here once you place one.</p>
+        <Link
+          href="/shop"
+          className="mt-6 rounded-full bg-ink px-8 py-3.5 text-sm font-semibold tracking-[0.15em] text-white uppercase"
+        >
+          Start shopping
+        </Link>
+      </section>
+    );
+  }
+
+  return (
+    <section className="rounded-3xl border border-black/5 bg-white p-6 shadow-xl sm:p-8">
+      <h2 className="text-xl font-semibold">Your orders</h2>
+      <ul className="mt-4 divide-y divide-black/10">
+        {orders.map((o) => (
+          <li key={o.reference}>
+            {/* Each row links to the full order page */}
+            <Link href={`/order/${o.reference}`} className="flex items-center justify-between gap-4 py-4 transition hover:text-accent">
+              <div className="min-w-0">
+                <p className="font-semibold">{o.reference}</p>
+                <p className="text-xs text-muted">
+                  {new Date(o.createdAt).toLocaleDateString("en-NG", { day: "numeric", month: "short", year: "numeric" })}
+                  {" � "}
+                  {o.items.reduce((n, i) => n + i.quantity, 0)} item(s)
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="font-semibold">{naira.format(o.total)}</p>
+                <p className="text-xs text-muted">{o.statusLabel}</p>
+              </div>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+===== C:\Users\DELL\Desktop\be-tender\frontend\src\components\OrderConfirmation.tsx =====
+"use client"; // needs the login token and the browser address, so it runs in the browser
+
+import { useEffect, useState } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import { CheckCircle2, Clock } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
+import { ApiError } from "@/lib/authApi";
+import { confirmPayment, getOrder, startPayment, type Order } from "@/lib/ordersApi";
+import { naira } from "@/lib/format";
+
+export default function OrderConfirmation({ reference }: { reference: string }) {
+  const { user, ready } = useAuth();
+  const [order, setOrder] = useState<Order | null>(null);
+  const [error, setError] = useState("");
+  const [returned, setReturned] = useState(false); // true if we just came back from Paystack
+  const [busy, setBusy] = useState(false);         // true while a payment call is running
+  const [payError, setPayError] = useState("");
+
+  // Load the order. If Paystack just sent the customer back, confirm the payment first.
+  useEffect(() => {
+    if (!ready || !user) return;
+
+    const params = new URLSearchParams(window.location.search);
+    const cameBack = params.has("reference") || params.has("trxref"); // Paystack adds these
+
+    const load = cameBack ? confirmPayment(reference) : getOrder(reference);
+    load
+      .then((o) => {
+        setOrder(o);
+        if (cameBack) {
+          setReturned(true);
+          window.history.replaceState(null, "", window.location.pathname); // tidy the address bar
+        }
+      })
+      .catch((e) =>
+        setError(e instanceof ApiError && e.status === 404 ? "We couldn't find that order." : "Could not load the order.")
+      );
+  }, [ready, user, reference]);
+
+  // Send the customer to Paystack to pay
+  const pay = async () => {
+    setPayError("");
+    setBusy(true);
+    try {
+      window.location.href = await startPayment(reference); // leaves our site for Paystack's page
+    } catch (e) {
+      setPayError(e instanceof ApiError ? e.message : "Could not start the payment. Please try again.");
+      setBusy(false);
+    }
+  };
+
+  // "I've paid but it still says pending": ask Paystack again
+  const checkAgain = async () => {
+    setPayError("");
+    setBusy(true);
+    try {
+      setOrder(await confirmPayment(reference));
+    } catch (e) {
+      setPayError(e instanceof ApiError ? e.message : "Could not check the payment. Please try again.");
+    }
+    setBusy(false);
+  };
+
+  if (!ready) return <p className="text-muted">Loading...</p>;
+  if (!user) return <p>Please <Link href="/login" className="underline">sign in</Link> to view this order.</p>;
+  if (error) return <p className="text-red-600">{error}</p>;
+  if (!order) return <p className="text-muted">{window.location.search ? "Confirming your payment..." : "Loading your order..."}</p>;
+
+  const isPending = order.status === "pending";
+
+  return (
+    <div className="max-w-3xl space-y-8">
+      {/* Status banner: changes with the order's payment state */}
+      {isPending ? (
+        <div className="rounded-3xl border border-black/10 p-6">
+          <div className="flex items-start gap-4">
+            <Clock className="mt-0.5 shrink-0 text-accent" />
+            <div>
+              <p className="text-lg font-semibold">Awaiting payment</p>
+              <p className="text-sm text-muted">
+                Reference <strong className="text-ink">{order.reference}</strong>. Your order is reserved once you pay.
+              </p>
+              {returned && (
+                <p className="mt-2 text-sm text-red-600">We haven&apos;t received your payment yet. You can try again below.</p>
+              )}
+            </div>
+          </div>
+          <div className="mt-5 flex flex-wrap items-center gap-3">
+            <button
+              onClick={pay}
+              disabled={busy}
+              className="rounded-full bg-accent px-8 py-3.5 text-sm font-semibold tracking-[0.15em] text-white uppercase shadow-lg disabled:opacity-60"
+            >
+              {busy ? "Please wait..." : `Pay ${naira.format(order.total)}`}
+            </button>
+            <button onClick={checkAgain} disabled={busy} className="text-sm font-medium text-muted underline underline-offset-4 hover:text-accent">
+              I&apos;ve already paid, check again
+            </button>
+          </div>
+          {payError && <p className="mt-3 text-sm text-red-600">{payError}</p>}
+        </div>
+      ) : (
+        <div className="flex items-start gap-4 rounded-3xl bg-accent/10 p-6">
+          <CheckCircle2 className="mt-0.5 shrink-0 text-accent" />
+          <div>
+            <p className="text-lg font-semibold">{order.status === "paid" ? "Payment received. Thank you!" : order.statusLabel}</p>
+            <p className="text-sm text-muted">
+              Reference <strong className="text-ink">{order.reference}</strong> � {order.statusLabel}
+            </p>
+          </div>
+        </div>
+      )}
+
+      <ul className="divide-y divide-black/10 rounded-3xl border border-black/10 px-6">
+        {order.items.map((i, n) => (
+          <li key={n} className="flex gap-4 py-5">
+            <div className="relative h-20 w-16 shrink-0 overflow-hidden rounded-lg bg-sand">
+              <Image src={i.image} alt={i.name} fill sizes="64px" className="object-cover" />
+            </div>
+            <div className="min-w-0 flex-1 text-sm">
+              <p className="font-medium">{i.name}</p>
+              <p className="text-xs text-muted">{i.color} � {i.size} � Qty {i.quantity}</p>
+            </div>
+            <p className="text-sm font-semibold">{naira.format(i.lineTotal)}</p>
+          </li>
+        ))}
+      </ul>
+
+      <div className="grid gap-8 sm:grid-cols-2">
+        <section className="text-sm">
+          <h2 className="font-semibold">Delivering to</h2>
+          <p className="mt-2 text-muted">
+            {order.recipientName}<br />{order.address}<br />{order.city}, {order.state}<br />{order.phone}
+          </p>
+        </section>
+        <dl className="space-y-2 text-sm">
+          <div className="flex justify-between"><dt>Subtotal</dt><dd>{naira.format(order.subtotal)}</dd></div>
+          <div className="flex justify-between"><dt>Delivery</dt><dd>{order.deliveryFee === 0 ? "Free" : naira.format(order.deliveryFee)}</dd></div>
+          <div className="flex justify-between border-t border-black/10 pt-2 text-base font-semibold"><dt>Total</dt><dd>{naira.format(order.total)}</dd></div>
+        </dl>
+      </div>
+
+      <Link href="/shop" className="inline-block rounded-full bg-ink px-8 py-3.5 text-sm font-semibold tracking-[0.15em] text-white uppercase">
+        Continue shopping
+      </Link>
+    </div>
+  );
+}
+
+===== C:\Users\DELL\Desktop\be-tender\frontend\src\lib\authApi.ts =====
+// Talks to the Laravel auth endpoints. Every page and component goes through this file.
+
+const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000/api/v1";
+
+// A customer, exactly as UserResource sends it
+export type User = {
+  id: number;
+  name: string;
+  email: string;
+  phone: string | null;
+  role: "customer" | "admin" | "super_admin"; // decides storefront vs admin
+  createdAt: string;
+};
+
+// What register and login return
+export type AuthResult = { user: User; token: string };
+
+// A failed request. "fields" holds Laravel's per-field messages, e.g. { email: ["The email has already been taken."] }
+export class ApiError extends Error {
+  status: number; // HTTP status (0 = the server could not be reached)
+  fields: Record<string, string[]>;
+
+  constructor(message: string, status: number, fields: Record<string, string[]> = {}) {
+    super(message);
+    this.status = status;
+    this.fields = fields;
+  }
+}
+
+// One helper for every call: adds the JSON headers and the token, and turns failures into ApiError
+  export async function call<T>(
+  path: string,
+  method: "GET" | "POST" | "PATCH" | "DELETE",
+  token: string | null = null,
+  body?: unknown,
+  extraHeaders: Record<string, string> = {} // e.g. the Idempotency-Key
+    ): Promise<T> {  
+  let res: Response;
+  try {
+    res = await fetch(`${BASE}${path}`, {
+      method,
+      headers: {
+        Accept: "application/json", // ask Laravel for JSON, even for errors
+        ...(body ? { "Content-Type": "application/json" } : {}),
+        ...(token ? { Authorization: `Bearer ${token}` } : {}), // proves who we are
+        ...extraHeaders,
+      },
+      body: body ? JSON.stringify(body) : undefined,
+      cache: "no-store", // never reuse an old answer for account data
+    });
+  } catch {
+    throw new ApiError("Cannot reach the server. Check your connection and try again.", 0);
+  }
+
+  if (res.status === 204) return undefined as T; // logout answers with no body
+
+  const data = await res.json().catch(() => ({})); // an HTML error page is not JSON
+  if (!res.ok) {
+    throw new ApiError(data.message ?? "Something went wrong. Please try again.", res.status, data.errors ?? {});
+  }
+  return data as T;
+}
+
+export const registerRequest = (input: { name: string; email: string; phone?: string; password: string }) =>
+  call<AuthResult>("/register", "POST", null, input);
+
+export const loginRequest = (input: { email: string; password: string }) =>
+  call<AuthResult>("/login", "POST", null, input);
+
+export const meRequest = (token: string) => call<{ user: User }>("/me", "GET", token);
+
+export const logoutRequest = (token: string) => call<void>("/logout", "POST", token);
+
+===== C:\Users\DELL\Desktop\be-tender\frontend\src\context\AuthContext.tsx =====
+"use client"; // uses state and browser storage, so it runs in the browser
+
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import {
+  ApiError,
+  loginRequest,
+  logoutRequest,
+  meRequest,
+  registerRequest,
+  type AuthResult,
+  type User,
+} from "@/lib/authApi";
+
+// Everything other components can read or call
+type AuthContextValue = {
+  user: User | null;  // null = signed out
+  ready: boolean;     // true once we've checked for a saved login (avoids a "signed out" flash)
+  register: (input: { name: string; email: string; phone?: string; password: string }) => Promise<void>;
+  login: (email: string, password: string) => Promise<void>;
+  logout: () => Promise<void>;
+};
+
+const AuthContext = createContext<AuthContextValue | null>(null);
+
+const TOKEN_KEY = "be-tender-token"; // where the login token is kept in the browser
+
+// Small helpers: storage can be blocked, so every access is wrapped
+const readToken = (): string | null => {
+  try {
+    return localStorage.getItem(TOKEN_KEY);
+  } catch {
+    return null;
+  }
+};
+const writeToken = (token: string | null) => {
+  try {
+    if (token) localStorage.setItem(TOKEN_KEY, token);
+    else localStorage.removeItem(TOKEN_KEY);
+  } catch {
+    /* storage blocked: the login just won't survive a refresh */
+  }
+};
+
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [user, setUser] = useState<User | null>(null);
+  const [ready, setReady] = useState(false);
+
+  // On first load: if a token was saved, ask the API who it belongs to
+  useEffect(() => {
+    const token = readToken();
+    if (!token) {
+      setReady(true);
+      return;
+    }
+    meRequest(token)
+      .then((r) => setUser(r.user))
+      .catch((e) => {
+        if (e instanceof ApiError && e.status === 401) writeToken(null); // token expired or revoked: forget it
+      })
+      .finally(() => setReady(true));
+  }, []);
+
+  // Save the token and remember the user
+  const startSession = useCallback((r: AuthResult) => {
+    writeToken(r.token);
+    setUser(r.user);
+  }, []);
+
+  const register = useCallback(
+    async (input: { name: string; email: string; phone?: string; password: string }) => {
+      startSession(await registerRequest(input));
+    },
+    [startSession]
+  );
+
+  const login = useCallback(
+    async (email: string, password: string) => {
+      startSession(await loginRequest({ email, password }));
+    },
+    [startSession]
+  );
+
+  const logout = useCallback(async () => {
+    const token = readToken();
+    try {
+      if (token) await logoutRequest(token); // revoke it on the server
+    } catch {
+      /* already invalid or offline: we still sign out here */
+    }
+    writeToken(null);
+    setUser(null);
+  }, []);
+
+  const value = useMemo(
+    () => ({ user, ready, register, login, logout }),
+    [user, ready, register, login, logout]
+  );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+// The one-line way for any component to use it: const { user } = useAuth();
+export function useAuth() {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error("useAuth must be used inside <AuthProvider>");
+  return ctx;
+}
+
+===== C:\Users\DELL\Desktop\be-tender\backend\resources\views\emails\order-update.blade.php =====
+<x-mail::message>
+# {{ $headline }}
+
+{{ $intro }}
+
+**Order {{ $order->reference }}**
+
+<x-mail::table>
+| Item | Qty | Price |
+| :--- | :-: | ----: |
+@foreach ($order->items as $item)
+| {{ $item->name }} ({{ $item->color }}, {{ $item->size }}) | {{ $item->quantity }} | ?{{ number_format($item->unit_price * $item->quantity) }} |
+@endforeach
+| Delivery | | ?{{ number_format($order->delivery_fee) }} |
+| **Total** | | **?{{ number_format($order->total) }}** |
+</x-mail::table>
+
+**Delivering to:** {{ $order->recipient_name }}, {{ $order->address }}, {{ $order->city }}, {{ $order->state }}
+
+@unless ($forStaff)
+<x-mail::button :url="config('shop.frontend_url') . '/order/' . $order->reference">
+View your order
+</x-mail::button>
+@endunless
+
+Thanks,<br>
+BE TENDER
+</x-mail::message>
+
+
+===== GREP: places that read an order's user =====

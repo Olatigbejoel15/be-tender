@@ -16,6 +16,7 @@ use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpKernel\Exception\TooManyRequestsHttpException;
 
 class OrderService
 {
@@ -27,11 +28,16 @@ class OrderService
     ) {}
 
     // Turn a cart into an order. Every price and option is checked against the database.
-    public function place(User $user, CheckoutData $data, ?string $idempotencyKey = null): Order
+    public function place(?User $user, CheckoutData $data, ?string $idempotencyKey = null): Order
     {
         // Same attempt seen before? Return the order we already made.
-        if ($idempotencyKey && $existing = $this->orders->findByIdempotencyKey($user, $idempotencyKey)) {
+        if ($idempotencyKey && $existing = $this->orders->findByIdempotencyKey($user, $data->email, $idempotencyKey)) {
             return $existing;
+        }
+
+        // Cap unpaid orders per email so nobody can hoard stock without paying
+        if ($this->orders->countPendingForEmail($data->email) >= config('shop.max_pending_per_email', 3)) {
+            throw new TooManyRequestsHttpException(null, 'You have unpaid orders waiting. Please pay for them, or wait for them to expire, before placing another.');
         }
 
         $found = $this->products->findManyByIds(
@@ -64,6 +70,7 @@ class OrderService
                 $this->stock->reserve($items); // Lock, check and take the stock (throws a 422 if short)
 
                 $order = $this->orders->create($user, [
+                    'email'             => $data->email,          // Receipts and lookups use this
                     'status'            => OrderStatus::Pending,
                     'subtotal'          => $subtotal,
                     'delivery_fee'      => $deliveryFee,
@@ -83,7 +90,7 @@ class OrderService
             }, 3); // Retry up to 3 times if MySQL reports a deadlock
         } catch (UniqueConstraintViolationException $e) {
             // Two identical requests raced: the other one won, so return its order
-            return ($idempotencyKey ? $this->orders->findByIdempotencyKey($user, $idempotencyKey) : null) ?? throw $e;
+            return ($idempotencyKey ? $this->orders->findByIdempotencyKey($user, $data->email, $idempotencyKey) : null) ?? throw $e;
         }
     }
 
@@ -92,9 +99,10 @@ class OrderService
         return $this->orders->forUser($user);
     }
 
-    public function findFor(User $user, string $reference): Order
+    // Account owner, or a guest who knows the order's email
+    public function findFor(?User $user, string $reference, ?string $email = null): Order
     {
-        return $this->orders->findForUser($user, $reference) ?? throw new ModelNotFoundException(); // Becomes a 404
+        return $this->orders->findForCustomer($user, $email, $reference) ?? throw new ModelNotFoundException(); // Becomes a 404
     }
 
     // Free delivery over the threshold, otherwise a flat fee by state

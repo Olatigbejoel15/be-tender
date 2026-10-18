@@ -12,5 +12,6 @@ return [
     'staff_alert_email' => env('STAFF_ALERT_EMAIL'), // Gets a note for each new paid order (null = no alert)
     'timezone' => 'Africa/Lagos',                                          // Days on the charts follow this zone
     'analytics_cache_ttl' => (int) env('ANALYTICS_CACHE_TTL', 60),         // Seconds (0 = no cache, handy while testing)
+    'max_pending_per_email' => 3, // Unpaid orders one email may hold at once (stops stock hoarding)
 ];
 

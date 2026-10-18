@@ -12,7 +12,7 @@ use Illuminate\Pagination\LengthAwarePaginator;
 interface OrderRepositoryInterface
 {
     // Save an order and its lines together (all or nothing)
-    public function create(User $user, array $attributes, array $items): Order;
+    public function create(?User $user, array $attributes, array $items): Order; // null user = guest order
 
     public function forUser(User $user): Collection;                        // All of one customer's orders, newest first
 
@@ -24,7 +24,7 @@ interface OrderRepositoryInterface
 
     public function markPaid(Order $order, string $paymentReference): bool;    // Pending -> paid, once only
 
-    public function findByIdempotencyKey(User $user, string $key): ?Order; // Order already made for this attempt, if any
+    public function findByIdempotencyKey(?User $user, string $email, string $key): ?Order; // Order already made for this attempt, if any
 
     public function paginateForAdmin(OrderFilterData $filters): LengthAwarePaginator;     // Filtered, paged list for staff
 
@@ -36,4 +36,8 @@ interface OrderRepositoryInterface
     public function recordStatus(Order $order, OrderStatus $to, ?User $actor, ?string $note): void; // null actor = System
 
     public function expiredPendingReferences(\Carbon\CarbonInterface $before, int $limit): array; // Unpaid orders older than $before
+
+    public function findForCustomer(?User $user, ?string $email, string $reference): ?Order; // Account owner, or guest with the right email
+
+    public function countPendingForEmail(string $email): int; // Unpaid orders this email holds
 }

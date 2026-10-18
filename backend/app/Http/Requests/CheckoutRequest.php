@@ -10,12 +10,13 @@ class CheckoutRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true; // The route already requires a signed-in user
+        return true; // Open to guests and signed-in customers
     }
 
     public function rules(): array
     {
         return [
+            'email'              => ['required', 'email:rfc', 'max:255'], // Receipt + payment email
             'recipient_name'     => ['required', 'string', 'max:100'],
             'phone'              => ['required', 'string', 'max:20'],
             'address'            => ['required', 'string', 'max:255'],
@@ -38,6 +39,7 @@ class CheckoutRequest extends FormRequest
 
         return new CheckoutData(
             recipientName: trim($v['recipient_name']),
+            email: mb_strtolower(trim($v['email'])), // Lowercase so lookups match
             phone: trim($v['phone']),
             address: trim($v['address']),
             city: trim($v['city']),
@@ -49,10 +51,13 @@ class CheckoutRequest extends FormRequest
         );
     }
 
-        // Copy the Idempotency-Key header into the input so it gets validated like any field
+    // Copy the header into the input, and force the account email for signed-in customers
     protected function prepareForValidation(): void
     {
-        $this->merge(['idempotency_key' => $this->header('Idempotency-Key')]);
+        $this->merge([
+            'idempotency_key' => $this->header('Idempotency-Key'),
+            ...($this->user('sanctum') ? ['email' => $this->user('sanctum')->email] : []),
+        ]);
     }
 
     // The validated key, or null if the client didn't send one

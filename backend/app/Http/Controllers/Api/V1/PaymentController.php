@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\OrderAccessRequest;
 use App\Http\Resources\OrderResource;
 use App\Services\PaymentService;
 use Illuminate\Http\JsonResponse;
@@ -13,17 +14,17 @@ class PaymentController extends Controller
     public function __construct(private PaymentService $payments) {}
 
     // POST /api/v1/orders/{reference}/pay (get the Paystack page URL)
-    public function pay(Request $request, string $reference): JsonResponse
+    public function pay(OrderAccessRequest $request, string $reference): JsonResponse
     {
         return response()->json([
-            'authorizationUrl' => $this->payments->start($request->user(), $reference),
+            'authorizationUrl' => $this->payments->start($request->user('sanctum'), $reference, $request->email()),
         ]);
     }
 
     // POST /api/v1/orders/{reference}/confirm (customer is back, check the payment)
-    public function confirm(Request $request, string $reference): OrderResource
+    public function confirm(OrderAccessRequest $request, string $reference): OrderResource
     {
-        return new OrderResource($this->payments->confirm($request->user(), $reference));
+        return new OrderResource($this->payments->confirm($request->user('sanctum'), $reference, $request->email()));
     }
 
     // POST /api/v1/webhooks/paystack (called by Paystack, no login)
