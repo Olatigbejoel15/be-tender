@@ -28,24 +28,25 @@ export class ApiError extends Error {
 }
 
 // One helper for every call: adds the JSON headers and the token, and turns failures into ApiError
-  export async function call<T>(
+ export async function call<T>(
   path: string,
   method: "GET" | "POST" | "PATCH" | "DELETE",
   token: string | null = null,
   body?: unknown,
   extraHeaders: Record<string, string> = {} // e.g. the Idempotency-Key
-    ): Promise<T> {  
+): Promise<T> {
+  const isForm = typeof FormData !== "undefined" && body instanceof FormData; // file uploads
   let res: Response;
   try {
     res = await fetch(`${BASE}${path}`, {
       method,
       headers: {
         Accept: "application/json", // ask Laravel for JSON, even for errors
-        ...(body ? { "Content-Type": "application/json" } : {}),
+        ...(body && !isForm ? { "Content-Type": "application/json" } : {}), // for files the browser adds its own (with the boundary)
         ...(token ? { Authorization: `Bearer ${token}` } : {}), // proves who we are
         ...extraHeaders,
       },
-      body: body ? JSON.stringify(body) : undefined,
+      body: isForm ? (body as FormData) : body ? JSON.stringify(body) : undefined, // files go as-is
       cache: "no-store", // never reuse an old answer for account data
     });
   } catch {

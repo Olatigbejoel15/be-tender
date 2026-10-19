@@ -157,3 +157,22 @@ export const createProduct = async (input: ProductInput) =>
 // The version proves we edited the latest copy (409 if someone else saved first)
 export const updateProduct = (id: number, version: number, input: ProductInput) =>
   adminCall<unknown>(`/products/${id}`, "PATCH", { ...input, version });
+
+// "Dark Green" -> "dark-green": the same key the server uses to match photos to colours
+export const colorSlug = (name: string) =>
+  name.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+
+// Multipart upload: the file plus which colour it belongs to
+export const uploadProductPhoto = (id: number, file: File, colourSlug: string) => {
+  const form = new FormData();
+  form.append("photo", file);
+  form.append("color", colourSlug);
+  return adminCall<unknown>(`/products/${id}/photos`, "POST", form);
+};
+
+export const deleteProductPhoto = (id: number, photoId: number) =>
+  adminCall<unknown>(`/products/${id}/photos/${photoId}`, "DELETE");
+
+// Set exact quantities for the cells that changed
+export const saveStock = (id: number, entries: { color: string; size: string; set: number }[]) =>
+  adminCall<unknown>(`/products/${id}/stock`, "PATCH", { stock: entries });

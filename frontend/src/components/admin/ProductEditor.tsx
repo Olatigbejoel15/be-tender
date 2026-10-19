@@ -7,12 +7,15 @@ import { ArrowLeft } from "lucide-react";
 import { ApiError } from "@/lib/authApi";
 import { getProduct, type AdminProduct } from "@/lib/adminApi";
 import ProductForm from "@/components/admin/ProductForm";
+import PhotoManager from "@/components/admin/PhotoManager";
+import StockManager from "@/components/admin/StockManager";
 
 export default function ProductEditor() {
   const { id } = useParams<{ id: string }>();
   const [product, setProduct] = useState<AdminProduct | null>(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [formKey, setFormKey] = useState(0); // bump to reset the details form to the server's values
 
   const load = useCallback(async () => {
     try {
@@ -26,6 +29,15 @@ export default function ProductEditor() {
   useEffect(() => {
     load();
   }, [load]);
+
+  // After a photo or stock change: refresh the data but leave the details form alone
+  const refresh = useCallback(async () => {
+    try {
+      setProduct(await getProduct(id));
+    } catch {
+      setNotice("Saved, but the page could not refresh. Reload to see the latest.");
+    }
+  }, [id]);
 
   const back = (
     <Link href="/admin/products" className="inline-flex items-center gap-1 text-sm text-muted hover:text-accent">
@@ -52,13 +64,17 @@ export default function ProductEditor() {
       </p>
       <p role="status" className="mt-4 min-h-5 text-sm text-green-700">{notice}</p>
 
-      {/* key = version: after a save or reload the form remounts with the fresh values */}
-      <ProductForm
-        key={product.version}
-        product={product}
-        onSaved={(p) => { setProduct(p); setNotice("Changes saved."); }}
-        onReload={() => { setNotice("Loaded the latest version."); load(); }}
-      />
+      <div className="max-w-3xl space-y-6">
+        <ProductForm
+          key={formKey}
+          product={product}
+          onSaved={(p) => { setProduct(p); setFormKey((k) => k + 1); setNotice("Changes saved."); }}
+          onReload={async () => { await load(); setFormKey((k) => k + 1); setNotice("Loaded the latest version."); }}
+        />
+
+        <PhotoManager product={product} onChanged={refresh} />
+        <StockManager key={product.colors.map((c) => c.name).join("|") + product.sizes.join("|")} product={product} onChanged={refresh} />
+      </div>
     </div>
   );
 }
