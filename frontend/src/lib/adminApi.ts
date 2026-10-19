@@ -129,3 +129,31 @@ export const setProductPublished = (id: number, version: number, isPublished: bo
   adminCall<unknown>(`/products/${id}`, "PATCH", { version, is_published: isPublished });
 
 export const deleteProduct = (id: number) => adminCall<void>(`/products/${id}`, "DELETE");
+
+// What the form sends (snake_case, as the Laravel request expects)
+export type ProductInput = {
+  category_id: number;
+  name: string;
+  price: number;
+  badge: string | null;
+  description: string;
+  features: string[];
+  fabric: string;
+  care: string;
+  size_label: string | null;
+  sizes: string[];
+  colors: { name: string; hex: string }[];
+  is_featured: boolean;
+  is_sold_out: boolean;
+  is_published: boolean;
+};
+
+export const getProduct = async (id: number | string) =>
+  (await adminCall<{ data: AdminProduct }>(`/products/${id}`)).data;
+
+export const createProduct = async (input: ProductInput) =>
+  (await adminCall<{ data: AdminProduct }>("/products", "POST", input)).data;
+
+// The version proves we edited the latest copy (409 if someone else saved first)
+export const updateProduct = (id: number, version: number, input: ProductInput) =>
+  adminCall<unknown>(`/products/${id}`, "PATCH", { ...input, version });

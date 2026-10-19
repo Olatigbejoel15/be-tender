@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { Search } from "lucide-react";
 import { ApiError } from "@/lib/authApi";
 import {
@@ -122,7 +123,12 @@ export default function ProductsList() {
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold">Products</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-semibold">Products</h1>
+        <Link href="/admin/products/new" className="rounded-full bg-accent px-6 py-2.5 text-sm font-semibold text-white">
+          New product
+        </Link>
+      </div>
 
       {/* Filters */}
       <div className="mt-5 flex flex-wrap items-center gap-3">
@@ -196,6 +202,7 @@ export default function ProductsList() {
                         <td className="px-5 py-3">{statusPills(p)}</td>
                         <td className="px-5 py-3">
                           <div className="flex justify-end gap-2">
+                            <Link href={`/admin/products/${p.id}`} className={rowButton}>Edit</Link>
                             <button onClick={() => togglePublish(p)} disabled={busyId === p.id} className={rowButton}>
                               {busyId === p.id ? "..." : p.isPublished ? "Hide" : "Publish"}
                             </button>
@@ -221,6 +228,7 @@ export default function ProductsList() {
                       </div>
                     </div>
                     <div className="mt-3 flex gap-2">
+                      <Link href={`/admin/products/${p.id}`} className={rowButton}>Edit</Link>
                       <button onClick={() => togglePublish(p)} disabled={busyId === p.id} className={rowButton}>
                         {busyId === p.id ? "..." : p.isPublished ? "Hide" : "Publish"}
                       </button>
