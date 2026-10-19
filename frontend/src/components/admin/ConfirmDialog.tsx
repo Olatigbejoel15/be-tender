@@ -9,11 +9,12 @@ type Props = {
   confirmLabel: string;
   danger?: boolean;      // red confirm button for destructive actions
   busy?: boolean;        // locks the dialog while saving
+  cancelLabel?: string;
   onConfirm: () => void;
   onCancel: () => void;
 };
 
-export default function ConfirmDialog({ open, title, message, confirmLabel, danger, busy, onConfirm, onCancel }: Props) {
+export default function ConfirmDialog({ open, title, message, confirmLabel,cancelLabel = "Keep order",  danger, busy, onConfirm, onCancel }: Props) {
   const ref = useRef<HTMLDialogElement>(null);
 
   // Keep the native dialog in sync with the `open` prop
@@ -38,7 +39,7 @@ export default function ConfirmDialog({ open, title, message, confirmLabel, dang
         <div className="mt-6 flex justify-end gap-3">
           <button onClick={onCancel} disabled={busy}
             className="rounded-full border border-ink/15 px-5 py-2.5 text-sm font-semibold transition hover:border-ink disabled:opacity-50">
-            Keep order
+            {cancelLabel}
           </button>
           <button onClick={onConfirm} disabled={busy}
             className={`rounded-full px-5 py-2.5 text-sm font-semibold text-white transition disabled:opacity-60 ${

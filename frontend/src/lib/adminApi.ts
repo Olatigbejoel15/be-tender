@@ -82,3 +82,50 @@ export const changeOrderStatus = (reference: string, status: string, note: strin
     status,
     ...(note.trim() ? { note: note.trim() } : {}), // the note is optional
   });
+
+  // ---------- Products ----------
+
+export type ProductPhoto = { id: number; color: string | null; position: number; url: string };
+export type ProductColor = { name: string; hex: string; image: string | null };
+export type StockRow = { color: string; size: string; quantity: number };
+
+export type AdminProduct = {
+  id: number; slug: string; name: string;
+  category: string; categoryId: number;
+  price: number; image: string; badge: string | null;
+  description: string; features: string[]; fabric: string; care: string;
+  sizeLabel: string | null; sizes: string[]; colors: ProductColor[];
+  isSoldOut: boolean; isFeatured: boolean; isPublished: boolean;
+  version: number;                 // send this back when editing
+  photos?: ProductPhoto[];
+  stock?: StockRow[];              // exact counts (staff only)
+  updatedAt: string;
+};
+
+export type AdminCategory = { id: number; name: string; slug: string };
+
+export type ProductQuery = {
+  search?: string; category?: string;
+  published?: string;              // "1" live, "0" drafts
+  sold_out?: string;               // "1" sold out, "0" in stock
+  page?: number; per_page?: number;
+};
+
+export function listProducts(q: ProductQuery) {
+  const p = new URLSearchParams();
+  Object.entries(q).forEach(([k, v]) => {
+    if (v !== undefined && v !== null && v !== "") p.set(k, String(v)); // skip empty filters
+  });
+  const qs = p.toString();
+  return adminCall<Page<AdminProduct>>(`/products${qs ? `?${qs}` : ""}`);
+}
+
+// Public endpoint, used to fill the category filter
+export const getCategories = () =>
+  call<{ data: AdminCategory[] }>("/categories", "GET", null).then((r) => r.data);
+
+// Publish or hide a product. The version proves we saw the latest copy (409 if someone else edited it).
+export const setProductPublished = (id: number, version: number, isPublished: boolean) =>
+  adminCall<unknown>(`/products/${id}`, "PATCH", { version, is_published: isPublished });
+
+export const deleteProduct = (id: number) => adminCall<void>(`/products/${id}`, "DELETE");

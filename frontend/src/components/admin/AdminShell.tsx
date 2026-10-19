@@ -12,7 +12,7 @@ type NavItem = { href: string; label: string; icon: LucideIcon; superOnly?: bool
 const NAV: NavItem[] = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/orders", label: "Orders", icon: ShoppingBag,  },
-  { href: "/admin/products", label: "Products", icon: Package, soon: true },
+  { href: "/admin/products", label: "Products", icon: Package },
   { href: "/admin/stock", label: "Stock", icon: Boxes, soon: true },
   { href: "/admin/audit-log", label: "Audit log", icon: ScrollText, superOnly: true, soon: true },
   { href: "/admin/staff", label: "Staff", icon: Users, superOnly: true, soon: true },
