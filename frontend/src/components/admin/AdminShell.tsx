@@ -13,9 +13,9 @@ const NAV: NavItem[] = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/orders", label: "Orders", icon: ShoppingBag,  },
   { href: "/admin/products", label: "Products", icon: Package },
-  { href: "/admin/stock", label: "Stock", icon: Boxes, soon: true },
-  { href: "/admin/audit-log", label: "Audit log", icon: ScrollText, superOnly: true, soon: true },
-  { href: "/admin/staff", label: "Staff", icon: Users, superOnly: true, soon: true },
+  { href: "/admin/stock", label: "Stock", icon: Boxes },
+  { href: "/admin/audit-log", label: "Audit log", icon: ScrollText, superOnly: true},
+  { href: "/admin/staff", label: "Staff", icon: Users, superOnly: true },
 ];
 
 const ROLE_LABEL = { admin: "Admin", super_admin: "Super admin", customer: "Customer" } as const;

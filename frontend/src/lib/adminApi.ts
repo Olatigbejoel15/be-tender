@@ -176,3 +176,61 @@ export const deleteProductPhoto = (id: number, photoId: number) =>
 // Set exact quantities for the cells that changed
 export const saveStock = (id: number, entries: { color: string; size: string; set: number }[]) =>
   adminCall<unknown>(`/products/${id}/stock`, "PATCH", { stock: entries });
+
+// ---------- Low stock ----------
+
+export type LowStockRow = {
+  product: { id: number; name: string; slug: string };
+  color: string;
+  size: string;
+  quantity: number;
+};
+
+export const getLowStock = async () => (await adminCall<{ data: LowStockRow[] }>("/stock/low")).data;
+
+// ---------- Audit log (super admin) ----------
+
+export type AuditEntry = {
+  id: number;
+  action: string;                                            // e.g. "product.updated"
+  summary: string;
+  changes: Record<string, { from: unknown; to: unknown }> | null;
+  by: string;                                                // "System" for automatic actions
+  subjectType: string;                                       // "product" | "user"
+  subjectId: number;
+  ip: string | null;
+  createdAt: string;
+};
+
+export type AuditQuery = { action?: string; subject_type?: string; page?: number };
+
+export function listAuditLogs(q: AuditQuery) {
+  const p = new URLSearchParams();
+  Object.entries(q).forEach(([k, v]) => {
+    if (v !== undefined && v !== null && v !== "") p.set(k, String(v)); // skip empty filters
+  });
+  const qs = p.toString();
+  return adminCall<Page<AuditEntry>>(`/audit-logs${qs ? `?${qs}` : ""}`);
+}
+
+// ---------- Staff (super admin) ----------
+
+export type StaffRole = "customer" | "admin" | "super_admin"; // "customer" = remove from staff
+
+export type StaffMember = {
+  id: number;
+  name: string;
+  email: string;
+  role: "admin" | "super_admin";
+  isActive: boolean;
+  createdAt: string;
+};
+
+export const listStaff = async () => (await adminCall<{ data: StaffMember[] }>("/staff")).data;
+
+// Existing customer: just email + role. Brand-new person: also name + password.
+export const addStaff = (input: { email: string; role: "admin" | "super_admin"; name?: string; password?: string }) =>
+  adminCall<{ data: StaffMember }>("/staff", "POST", input);
+
+export const updateStaff = (id: number, change: { role?: StaffRole; is_active?: boolean }) =>
+  adminCall<{ data: StaffMember }>(`/staff/${id}`, "PATCH", change);
