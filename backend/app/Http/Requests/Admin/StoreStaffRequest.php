@@ -21,4 +21,12 @@ class StoreStaffRequest extends FormRequest
             'role'     => ['required', Rule::in(['admin', 'super_admin'])],
         ];
     }
+
+        // Same casing the login and registration use, so lookups always match
+    protected function prepareForValidation(): void
+    {
+        if (is_string($this->input('email'))) {
+            $this->merge(['email' => mb_strtolower(trim($this->input('email')))]);
+        }
+    }
 }

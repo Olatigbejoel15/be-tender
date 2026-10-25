@@ -22,6 +22,7 @@ class AuthService
     }
 
     // Check the credentials and hand back a fresh token
+        // Check the credentials and hand back a fresh token
     public function login(LoginData $data): array
     {
         $user = $this->users->findByEmail($data->email);
@@ -29,6 +30,12 @@ class AuthService
         if (! $user || ! Hash::check($data->password, $user->password)) {
             throw ValidationException::withMessages([
                 'email' => ['These credentials do not match our records.'], // Same message for both cases
+            ]);
+        }
+
+        if (! $user->is_active) { // Checked after the password so we don't reveal which emails exist
+            throw ValidationException::withMessages([
+                'email' => ['This account has been deactivated. Please contact support.'],
             ]);
         }
 
