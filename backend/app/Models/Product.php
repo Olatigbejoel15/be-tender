@@ -8,10 +8,11 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Factories\HasFactory; // Lets tests build fake products
 
 class Product extends Model
 {
-    use SoftDeletes; // Makes delete() hide the row instead of erasing it
+    use HasFactory, SoftDeletes; // Makes delete() hide the row instead of erasing it
 
     protected $fillable = [
         'category_id', 'name', 'slug', 'description', 'price', 'badge', 'fabric',

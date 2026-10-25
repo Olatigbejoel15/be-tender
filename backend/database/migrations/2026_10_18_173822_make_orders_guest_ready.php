@@ -14,9 +14,12 @@ return new class extends Migration
             $table->string('email')->nullable()->after('user_id');  // Receipts + guest lookup (filled below)
         });
 
-        DB::table('orders')                                          // Old orders: copy the customer's email over
-            ->join('users', 'users.id', '=', 'orders.user_id')
-            ->update(['orders.email' => DB::raw('LOWER(users.email)')]);
+        // DB::table('orders')                                          // Old orders: copy the customer's email over
+        //     ->join('users', 'users.id', '=', 'orders.user_id')
+        //     ->update(['orders.email' => DB::raw('LOWER(users.email)')]);
+
+        // Old orders: copy the customer's email over (plain subquery, works on MySQL and SQLite)
+        DB::statement('UPDATE orders SET email = (SELECT LOWER(users.email) FROM users WHERE users.id = orders.user_id) WHERE user_id IS NOT NULL');
 
         Schema::table('orders', function (Blueprint $table) {
             $table->string('email')->nullable(false)->change();     // Every order has one from now on
