@@ -3,9 +3,10 @@
 namespace App\Services;
 
 use App\Enums\OrderStatus;
+use App\Events\LatePaymentReceived;
+use App\Events\OrderPaid;
 use App\Models\Order;
 use App\Models\User;
-use App\Events\OrderPaid;
 use App\Repositories\Contracts\OrderRepositoryInterface;
 use App\Services\Contracts\PaymentGatewayInterface;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -49,8 +50,8 @@ class PaymentService
     {
         $order = $this->orders->findForCustomer($user, $email, $reference) ?? throw new ModelNotFoundException();
 
-        if ($order->status === OrderStatus::Pending && $order->payment_reference) {
-            $this->settle($order, $order->payment_reference);
+        if ($order->payment_reference) {
+            $this->process($order, $order->payment_reference);
         }
 
         return $this->orders->findForCustomer($user, $email, $reference); // Reload with the new status
@@ -81,9 +82,19 @@ class PaymentService
         $orderReference   = $event['data']['metadata']['order_reference'] ?? null;
         $order = $orderReference ? $this->orders->findByReference($orderReference) : null;
 
-        if ($order && $paymentReference && $order->status === OrderStatus::Pending) {
-            $this->settle($order, $paymentReference); // Re-verify; never trust the payload alone
+        if ($order && $paymentReference) {
+            $this->process($order, $paymentReference);
         }
+    }
+
+    // Pick the right handling for the order's current state
+    private function process(Order $order, string $paymentReference): void
+    {
+        match ($order->status) {
+            OrderStatus::Pending   => $this->settle($order, $paymentReference),     // The normal case
+            OrderStatus::Cancelled => $this->settleLate($order, $paymentReference), // Paid after we gave up on it
+            default                => null,                                         // Already paid or beyond: nothing to do
+        };
     }
 
     // Ask Paystack, check the amount, then mark the order paid
@@ -102,6 +113,28 @@ class PaymentService
 
         if ($this->orders->markPaid($order, $paymentReference)) { // True only for the call that really flipped it
             OrderPaid::dispatch($order);                           // So the emails go out exactly once
+        }
+    }
+
+    // Money arrived for a cancelled order: never re-open it (the stock may be gone), flag it for a refund
+    private function settleLate(Order $order, string $paymentReference): void
+    {
+        if ($order->refund_needed_at !== null) {
+            return; // Already flagged: skip the Paystack call
+        }
+
+        $result = $this->gateway->verify($paymentReference);
+
+        if (! $result->paid) {
+            return; // An abandoned attempt, no money moved
+        }
+
+        if ($this->orders->flagLatePayment($order, $paymentReference)) { // True only the first time
+            Log::critical('Payment received for a cancelled order: refund needed', [
+                'order' => $order->reference, 'payment' => $paymentReference,
+                'paid_kobo' => $result->amount, 'currency' => $result->currency,
+            ]);
+            LatePaymentReceived::dispatch($order);
         }
     }
 }

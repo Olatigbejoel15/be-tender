@@ -40,4 +40,6 @@ interface OrderRepositoryInterface
     public function findForCustomer(?User $user, ?string $email, string $reference): ?Order; // Account owner, or guest with the right email
 
     public function countPendingForEmail(string $email): int; // Unpaid orders this email holds
+
+    public function flagLatePayment(Order $order, string $paymentReference): bool; // Cancelled order was paid: flag for refund, once only
 }

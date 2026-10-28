@@ -11,6 +11,7 @@ class AdminOrderResource extends OrderResource
         return [
             ...parent::toArray($request), // Everything the customer sees, plus:
             'paymentReference' => $this->payment_reference,
+            'needsRefund'      => $this->refund_needed_at !== null, // A customer paid for a cancelled order
             'customer' => [
                 'id'      => $this->user_id,                              // null for guests
                 'name'    => $this->user?->name ?? $this->recipient_name, // Guests: the delivery name

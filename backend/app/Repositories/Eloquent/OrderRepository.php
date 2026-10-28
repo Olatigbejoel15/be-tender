@@ -107,6 +107,26 @@ class OrderRepository implements OrderRepositoryInterface
         });
     }
 
+        public function flagLatePayment(Order $order, string $paymentReference): bool
+    {
+        return DB::transaction(function () use ($order, $paymentReference) {
+            $flagged = Order::where('id', $order->id)
+                ->where('status', OrderStatus::Cancelled->value)  // Only cancelled orders
+                ->whereNull('refund_needed_at')                   // Only the first call counts (webhook retries do nothing)
+                ->update(['refund_needed_at' => now(), 'payment_reference' => $paymentReference]) === 1;
+
+            if ($flagged) {
+                OrderStatusHistory::create([
+                    'order_id' => $order->id, 'user_id' => null,  // null = the system
+                    'from_status' => OrderStatus::Cancelled, 'to_status' => OrderStatus::Cancelled,
+                    'note' => "Payment {$paymentReference} arrived after the order was cancelled. Refund needed.",
+                ]);
+            }
+
+            return $flagged;
+        });
+    }
+
     public function findByIdempotencyKey(?User $user, string $email, string $key): ?Order
     {
         $query = Order::with('items')->where('idempotency_key', $key);

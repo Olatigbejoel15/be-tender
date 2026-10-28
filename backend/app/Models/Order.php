@@ -24,6 +24,7 @@ class Order extends Model
             'total'        => 'integer',
             'paid_at'      => 'datetime',
             'stock_reserved_at' => 'datetime',
+            'refund_needed_at'  => 'datetime', // Null = no refund owed
         ];
     }
 
