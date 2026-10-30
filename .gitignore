@@ -2,3 +2,8 @@
 frontend/public/products/*.png
 
 lookbook/
+
+# Temporary exports made for Claude: never commit these
+/*-shape.txt
+/*-files*.txt
+/tests-shape.txt
