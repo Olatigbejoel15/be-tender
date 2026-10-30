@@ -8,7 +8,7 @@ import { ArrowLeft } from "lucide-react";
 import { ApiError } from "@/lib/authApi";
 import { changeOrderStatus, getOrder, type AdminOrder } from "@/lib/adminApi";
 import { formatDateTime, naira } from "@/lib/format";
-import StatusBadge, { GuestBadge } from "@/components/admin/StatusBadge";
+import StatusBadge, { GuestBadge, RefundNotice } from "@/components/admin/StatusBadge";
 import ConfirmDialog from "@/components/admin/ConfirmDialog";
 
 // A white card with a title
@@ -24,11 +24,11 @@ function Card({ title, children }: { title: string; children: React.ReactNode })
 export default function OrderDetail() {
   const { reference } = useParams<{ reference: string }>();
   const [order, setOrder] = useState<AdminOrder | null>(null);
-  const [error, setError] = useState("");        // loading problem
-  const [choice, setChoice] = useState("");      // chosen next status
+  const [error, setError] = useState("");         // loading problem
+  const [choice, setChoice] = useState("");       // chosen next status
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState("");    // success note
+  const [message, setMessage] = useState("");     // success note
   const [formError, setFormError] = useState(""); // problem changing status
   const [confirming, setConfirming] = useState(false); // cancel dialog open?
 
@@ -47,7 +47,7 @@ export default function OrderDetail() {
     load();
   }, [load]);
 
-    // Does the actual update
+  // Does the actual update
   const run = async () => {
     if (!order || !choice) return;
     const label = order.nextStatuses.find((s) => s.value === choice)?.label ?? choice;
@@ -62,7 +62,7 @@ export default function OrderDetail() {
     } catch (e) {
       setFormError(e instanceof ApiError ? (e.fields.status?.[0] ?? e.message) : "Could not update the order.");
     } finally {
-      await load(); // always show what the server really holds
+      await load(); // always show what the server really holds (someone else may have changed it)
       setSaving(false);
       setConfirming(false);
     }
@@ -96,6 +96,13 @@ export default function OrderDetail() {
         <StatusBadge status={order.status} label={order.statusLabel} />
       </div>
       <p className="mt-1 text-sm text-muted">Placed {formatDateTime(order.createdAt)}</p>
+
+      {/* A customer paid for an order we had already cancelled */}
+      {order.needsRefund && (
+        <div className="mt-6">
+          <RefundNotice amount={naira.format(order.total)} paymentReference={order.paymentReference} />
+        </div>
+      )}
 
       <div className="mt-6 grid gap-6 lg:grid-cols-3">
         {/* Left: what was bought, where it goes */}
@@ -168,8 +175,10 @@ export default function OrderDetail() {
 
           <Card title="Customer and payment">
             <dl className="space-y-3 text-sm">
-              {/* <div><dt className="text-xs text-muted">Customer</dt><dd className="font-medium">{order.customer.name}</dd></div> */}
-                <div><dt className="text-xs text-muted">Customer</dt><dd className="font-medium">{order.customer.name}{order.customer.isGuest && <GuestBadge />}</dd></div>
+              <div>
+                <dt className="text-xs text-muted">Customer</dt>
+                <dd className="font-medium">{order.customer.name}{order.customer.isGuest && <GuestBadge />}</dd>
+              </div>
               <div><dt className="text-xs text-muted">Email</dt>
                 <dd><a href={`mailto:${order.customer.email}`} className="underline underline-offset-4 hover:text-accent">{order.customer.email}</a></dd></div>
               <div><dt className="text-xs text-muted">Payment reference</dt><dd className="font-mono text-xs break-all">{order.paymentReference ?? "None yet"}</dd></div>
@@ -191,7 +200,9 @@ export default function OrderDetail() {
           </Card>
         </div>
       </div>
-            <ConfirmDialog
+
+      {/* Styled confirmation for cancelling (replaces the browser's confirm box) */}
+      <ConfirmDialog
         open={confirming}
         danger
         busy={saving}

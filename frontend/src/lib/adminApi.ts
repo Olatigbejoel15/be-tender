@@ -56,6 +56,7 @@ export type AdminOrder = {
   customer: { id: number | null; name: string; email: string; phone: string | null; isGuest: boolean };
   nextStatuses: { value: string; label: string }[]; // the only moves allowed right now
   history?: OrderHistoryEntry[];                     // detail only
+  needsRefund: boolean; // A customer paid for this order after it was cancelled
 };
 
 export type Page<T> = {
