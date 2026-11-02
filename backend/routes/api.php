@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\V1\Admin\ProductController as AdminProductControlle
 use App\Http\Controllers\Api\V1\Admin\StockController as AdminStockController;
 use App\Http\Controllers\Api\V1\Admin\AnalyticsController as AdminAnalyticsController;
 use App\Http\Controllers\Api\V1\Admin\StaffController as AdminStaffController;
+use App\Http\Controllers\Api\V1\PasswordResetController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Resources\UserResource;
@@ -30,6 +31,8 @@ Route::prefix('v1')->group(function () {
 
     Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:10,1'); // 10 tries a minute
     Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');        // 5 tries a minute
+    Route::post('/forgot-password', [PasswordResetController::class, 'forgot'])->middleware('throttle:5,1'); // stops email spamming
+    Route::post('/reset-password', [PasswordResetController::class, 'reset'])->middleware('throttle:5,1');   // stops token guessing
 
     // Everything under /api/v1/admin needs a login AND a staff role
     Route::prefix('admin')->middleware(['auth:sanctum', 'staff'])->group(function () {
