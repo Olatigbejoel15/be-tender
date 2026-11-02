@@ -1,20 +1,25 @@
 "use client"; // uses state, the router and the API
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext"; // tells us if the visitor is signed in
 import { ApiError } from "@/lib/authApi";
 import { getOrder, rememberGuestEmail } from "@/lib/ordersApi";
 
 export default function TrackOrderForm() {
   const router = useRouter();
+  const { user } = useAuth();
   const [reference, setReference] = useState("");
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
+  const [notFound, setNotFound] = useState(false); // true when the API said "no such order for this pair"
   const [busy, setBusy] = useState(false);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setNotFound(false);
     setBusy(true);
 
     const ref = reference.trim().toUpperCase(); // references are always capitals
@@ -25,11 +30,11 @@ export default function TrackOrderForm() {
       rememberGuestEmail(ref, mail);            // so the order page doesn't ask again
       router.push(`/order/${ref}`);
     } catch (err) {
-      setError(
-        err instanceof ApiError && err.status === 404
-          ? "We couldn't find an order with that reference and email."
-          : err instanceof ApiError ? err.message : "Something went wrong. Please try again."
-      );
+      if (err instanceof ApiError && err.status === 404) {
+        setNotFound(true); // the hint below explains the account case
+      } else {
+        setError(err instanceof ApiError ? err.message : "Something went wrong. Please try again.");
+      }
       setBusy(false);
     }
   };
@@ -52,7 +57,23 @@ export default function TrackOrderForm() {
         <label htmlFor="mail" className={label}>Email</label>
         <input id="mail" type="email" required className={input} placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
       </div>
+
       {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
+
+      {/* Not found: same wording for a wrong email and a wrong reference, plus a hint for account orders */}
+      {notFound && (
+        <p role="alert" className="text-sm text-red-600">
+          We couldn&apos;t find an order with that reference and email. If you placed it while signed in,{" "}
+          <Link
+            href={user ? "/account" : "/login"}
+            className="font-semibold underline underline-offset-4"
+          >
+            {user ? "open My account" : "sign in"}
+          </Link>{" "}
+          to see it.
+        </p>
+      )}
+
       <button type="submit" disabled={busy} className="w-full rounded-full bg-accent py-4 text-sm font-semibold tracking-[0.15em] text-white uppercase shadow-lg disabled:opacity-60">
         {busy ? "Checking..." : "Track order"}
       </button>
