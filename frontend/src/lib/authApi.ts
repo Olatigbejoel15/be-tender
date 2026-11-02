@@ -71,3 +71,11 @@ export const loginRequest = (input: { email: string; password: string }) =>
 export const meRequest = (token: string) => call<{ user: User }>("/me", "GET", token);
 
 export const logoutRequest = (token: string) => call<void>("/logout", "POST", token);
+
+// Asks the API to email a reset link (the answer is the same whether or not the email has an account)
+export const forgotPasswordRequest = (email: string) =>
+  call<{ message: string }>("/forgot-password", "POST", null, { email });
+
+// Sets the new password using the token from the email link
+export const resetPasswordRequest = (input: { token: string; email: string; password: string; password_confirmation: string }) =>
+  call<{ message: string }>("/reset-password", "POST", null, input);

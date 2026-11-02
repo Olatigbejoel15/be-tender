@@ -62,6 +62,7 @@ export default function Footer() {
           <div>
             <h4 className="text-sm font-semibold tracking-wide uppercase">Help</h4>
             <ul className="mt-4 space-y-3 text-sm text-muted">
+              <li><Link href="/track" className={link}>Track your order</Link></li>
               <li><Link href="/faq" className={link}>FAQs</Link></li>
               <li><Link href="/contact" className={link}>Contact</Link></li>
               <li><Link href="/privacy" className={link}>Privacy Policy</Link></li>

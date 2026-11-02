@@ -17,7 +17,7 @@ export default function LoginForm() {
   const [busy, setBusy] = useState(false); // true while we wait for the API
 
   // Signed in (just now, or already before)? Go to the account page.
-      useEffect(() => {
+  useEffect(() => {
     if (user) router.replace(user.role === "customer" ? "/account" : "/admin"); // staff go to the admin area
   }, [user, router]);
 
@@ -51,6 +51,13 @@ export default function LoginForm() {
           <label htmlFor="password" className={label}>Password</label>
           <input id="password" type="password" required autoComplete="current-password" className={input}
             value={password} onChange={(e) => setPassword(e.target.value)} />
+        </div>
+
+        {/* Pulled up under the password box (-mt-2 cancels part of the gap above) */}
+        <div className="-mt-2 text-right">
+          <Link href="/forgot-password" className="text-xs font-medium text-muted underline underline-offset-4 transition-colors hover:text-accent">
+            Forgot password?
+          </Link>
         </div>
 
         <motion.button

@@ -16,6 +16,7 @@ const links = [
   { label: "Categories", href: "/#categories" },
   { label: "Lookbook", href: "/#lookbook" },
   { label: "Reviews", href: "/#reviews" },
+  { label: "Track order", href: "/track" }, // guests and customers look up an order here
 ];
 
 export default function Navbar() {
@@ -40,8 +41,8 @@ export default function Navbar() {
             <Logo className="h-9 w-auto" /> {/* h-9 = 36px tall, width follows automatically */}
           </a>
 
-          {/* CENTER: links (hidden on phones) */}
-          <ul className="hidden items-center gap-10 md:flex">
+          {/* CENTER: links (hidden on phones). gap-8 keeps six links from crowding tablets */}
+          <ul className="hidden items-center gap-8 md:flex">
             {links.map((link) => (
               <li key={link.href}>
                 <a
