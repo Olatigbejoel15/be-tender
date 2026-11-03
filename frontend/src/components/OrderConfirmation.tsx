@@ -6,8 +6,12 @@ import Link from "next/link";
 import { CheckCircle2, Clock } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { ApiError } from "@/lib/authApi";
-import { confirmPayment, getGuestEmail, getOrder, rememberGuestEmail, startPayment, type Order } from "@/lib/ordersApi";
+import {
+  confirmPayment, getDeliveryRates, getGuestEmail, getOrder, rememberGuestEmail, startPayment, updateDelivery,
+  type DeliveryRates, type Order,
+} from "@/lib/ordersApi";
 import { naira } from "@/lib/format";
+import { STATES } from "@/lib/shop";
 
 export default function OrderConfirmation({ reference }: { reference: string }) {
   const { user, ready } = useAuth();
@@ -19,6 +23,14 @@ export default function OrderConfirmation({ reference }: { reference: string }) 
   const [guestEmail, setGuestEmail] = useState<string | null>(() => getGuestEmail(reference)); // guests only
   const [emailInput, setEmailInput] = useState("");
   const [emailError, setEmailError] = useState("");
+
+  // Editing the delivery details (only while unpaid)
+  const [editing, setEditing] = useState(false);
+  const [form, setForm] = useState({ name: "", phone: "", address: "", city: "", state: "Lagos" });
+  const [saving, setSaving] = useState(false);
+  const [editError, setEditError] = useState("");
+  const [editFields, setEditFields] = useState<Record<string, string[]>>({}); // per-field messages from Laravel
+  const [rates, setRates] = useState<DeliveryRates | null>(null); // fees by state, to preview the new total
 
   // Load the order. If Paystack just sent the customer back, confirm the payment first.
   const load = useCallback(async (email: string | null) => {
@@ -52,6 +64,11 @@ export default function OrderConfirmation({ reference }: { reference: string }) 
     else if (guestEmail) load(guestEmail);   // guest with a known email
   }, [ready, user, guestEmail, load]);
 
+  // Fetch the delivery fees once, only when the customer starts editing
+  useEffect(() => {
+    if (editing && !rates) getDeliveryRates().then(setRates).catch(() => setRates(null));
+  }, [editing, rates]);
+
   // Guest typed their email
   const submitEmail = (e: React.FormEvent) => {
     e.preventDefault();
@@ -83,6 +100,40 @@ export default function OrderConfirmation({ reference }: { reference: string }) 
       setPayError(e instanceof ApiError ? e.message : "Could not check the payment. Please try again.");
     }
     setBusy(false);
+  };
+
+  // Open the edit form with the current details filled in
+  const startEdit = () => {
+    if (!order) return;
+    setForm({ name: order.recipientName, phone: order.phone, address: order.address, city: order.city, state: order.state });
+    setEditError("");
+    setEditFields({});
+    setEditing(true);
+  };
+
+  // Save the new details; the server recalculates the fee and total
+  const saveDelivery = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setEditError("");
+    setEditFields({});
+    setSaving(true);
+    try {
+      const updated = await updateDelivery(
+        reference,
+        { recipient_name: form.name.trim(), phone: form.phone.trim(), address: form.address.trim(), city: form.city.trim(), state: form.state },
+        user ? null : guestEmail
+      );
+      setOrder(updated);
+      setEditing(false);
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setEditFields(err.fields);
+        setEditError(err.fields.order?.[0] ?? (Object.keys(err.fields).length === 0 ? err.message : ""));
+      } else {
+        setEditError("Something went wrong. Please try again.");
+      }
+    }
+    setSaving(false);
   };
 
   if (!ready) return <p className="text-muted">Loading...</p>;
@@ -122,6 +173,13 @@ export default function OrderConfirmation({ reference }: { reference: string }) 
 
   const isPending = order.status === "pending";
 
+  // What the new fee and total would be for the state chosen in the edit form (null = not known yet)
+  const previewFee = rates ? (order.subtotal >= rates.freeOver ? 0 : (rates.fees[form.state] ?? null)) : null;
+
+  const input =
+    "w-full rounded-xl border border-ink/15 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-accent focus:ring-4 focus:ring-accent/10";
+  const fieldErr = (k: string) => editFields[k]?.[0] && <p className="mt-1 text-xs text-red-600">{editFields[k][0]}</p>;
+
   return (
     <div className="max-w-3xl space-y-8">
       {/* Status banner: changes with the order's payment state */}
@@ -142,7 +200,7 @@ export default function OrderConfirmation({ reference }: { reference: string }) 
           <div className="mt-5 flex flex-wrap items-center gap-3">
             <button
               onClick={pay}
-              disabled={busy}
+              disabled={busy || editing} // no paying a total that is about to change
               className="rounded-full bg-accent px-8 py-3.5 text-sm font-semibold tracking-[0.15em] text-white uppercase shadow-lg disabled:opacity-60"
             >
               {busy ? "Please wait..." : `Pay ${naira.format(order.total)}`}
@@ -151,6 +209,7 @@ export default function OrderConfirmation({ reference }: { reference: string }) 
               I&apos;ve already paid, check again
             </button>
           </div>
+          {editing && <p className="mt-3 text-xs text-muted">Save or cancel your delivery changes below before paying.</p>}
           {payError && <p className="mt-3 text-sm text-red-600">{payError}</p>}
         </div>
       ) : (
@@ -183,10 +242,65 @@ export default function OrderConfirmation({ reference }: { reference: string }) 
 
       <div className="grid gap-8 sm:grid-cols-2">
         <section className="text-sm">
-          <h2 className="font-semibold">Delivering to</h2>
-          <p className="mt-2 text-muted">
-            {order.recipientName}<br />{order.address}<br />{order.city}, {order.state}<br />{order.phone}
-          </p>
+          <div className="flex items-center justify-between">
+            <h2 className="font-semibold">Delivering to</h2>
+            {/* Only while unpaid: after that the parcel is being prepared */}
+            {isPending && !editing && (
+              <button onClick={startEdit} className="text-xs font-semibold underline underline-offset-4 hover:text-accent">
+                Change
+              </button>
+            )}
+          </div>
+
+          {editing ? (
+            <form onSubmit={saveDelivery} className="mt-3 space-y-3">
+              <div>
+                <input aria-label="Full name" required className={input} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+                {fieldErr("recipient_name")}
+              </div>
+              <div>
+                <input aria-label="Phone number" type="tel" required className={input} value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+                {fieldErr("phone")}
+              </div>
+              <div>
+                <input aria-label="Street address" required className={input} value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} />
+                {fieldErr("address")}
+              </div>
+              <div>
+                <input aria-label="City or area" required className={input} value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} />
+                {fieldErr("city")}
+              </div>
+              <div>
+                <select aria-label="State" className={input} value={form.state} onChange={(e) => setForm({ ...form, state: e.target.value })}>
+                  {STATES.map((s) => <option key={s}>{s}</option>)}
+                </select>
+                {fieldErr("state")}
+              </div>
+
+              {/* The new fee and total for the chosen state, before anything is saved */}
+              {previewFee !== null && (
+                <p className="rounded-xl bg-sand p-3 text-xs">
+                  Delivery to {form.state}: <strong>{previewFee === 0 ? "Free" : naira.format(previewFee)}</strong>
+                  {" · "}New total: <strong>{naira.format(order.subtotal + previewFee)}</strong>
+                </p>
+              )}
+
+              {editError && <p role="alert" className="text-xs text-red-600">{editError}</p>}
+
+              <div className="flex gap-3">
+                <button type="submit" disabled={saving} className="rounded-full bg-ink px-5 py-2.5 text-xs font-semibold tracking-[0.15em] text-white uppercase disabled:opacity-60">
+                  {saving ? "Saving..." : "Save"}
+                </button>
+                <button type="button" onClick={() => setEditing(false)} className="text-xs font-medium text-muted underline underline-offset-4 hover:text-accent">
+                  Cancel
+                </button>
+              </div>
+            </form>
+          ) : (
+            <p className="mt-2 text-muted">
+              {order.recipientName}<br />{order.address}<br />{order.city}, {order.state}<br />{order.phone}
+            </p>
+          )}
         </section>
         <dl className="space-y-2 text-sm">
           <div className="flex justify-between"><dt>Subtotal</dt><dd>{naira.format(order.subtotal)}</dd></div>

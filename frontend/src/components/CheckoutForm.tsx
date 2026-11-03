@@ -10,13 +10,9 @@ import { useAuth } from "@/context/AuthContext";
 import { ApiError } from "@/lib/authApi";
 import { getDeliveryRates, placeOrder, rememberGuestEmail, type DeliveryRates } from "@/lib/ordersApi";
 import { naira } from "@/lib/format";
+import { STATES } from "@/lib/shop";
 
-// Nigeria's 36 states + FCT (the API charges delivery by state)
-const STATES = [
-  "Abia","Adamawa","Akwa Ibom","Anambra","Bauchi","Bayelsa","Benue","Borno","Cross River","Delta","Ebonyi","Edo",
-  "Ekiti","Enugu","FCT","Gombe","Imo","Jigawa","Kaduna","Kano","Katsina","Kebbi","Kogi","Kwara","Lagos","Nasarawa",
-  "Niger","Ogun","Ondo","Osun","Oyo","Plateau","Rivers","Sokoto","Taraba","Yobe","Zamfara",
-];
+
 
 export default function CheckoutForm() {
   const router = useRouter();

@@ -10,6 +10,8 @@ use App\Services\OrderService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use App\Http\Requests\UpdateOrderDeliveryRequest;
+
 
 class OrderController extends Controller
 {
@@ -28,6 +30,14 @@ class OrderController extends Controller
     public function lookup(OrderAccessRequest $request, string $reference): OrderResource
     {
         return new OrderResource($this->orders->findFor($request->user('sanctum'), $reference, $request->email()));
+    }
+
+    // PATCH /api/v1/orders/{reference}/delivery (fix the address while unpaid)
+    public function updateDelivery(UpdateOrderDeliveryRequest $request, string $reference): OrderResource
+    {
+        return new OrderResource(
+            $this->orders->updateDelivery($request->user('sanctum'), $reference, $request->email(), $request->delivery())
+        );
     }
 
     // GET /api/v1/orders (my orders)

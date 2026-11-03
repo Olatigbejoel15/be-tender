@@ -100,3 +100,12 @@ export const confirmPayment = (reference: string, email: string | null = null) =
 export type DeliveryRates = { freeOver: number; fees: Record<string, number> };
 
 export const getDeliveryRates = () => call<DeliveryRates>("/delivery-fees", "GET");
+
+// The delivery details a customer may change while the order is unpaid
+export type DeliveryInput = { recipient_name: string; phone: string; address: string; city: string; state: string };
+
+// Guests prove ownership with their email (no token); signed-in customers send their token
+export const updateDelivery = (reference: string, input: DeliveryInput, email: string | null = null) =>
+  call<{ data: Order }>(
+    `/orders/${ref(reference)}/delivery`, "PATCH", email ? null : getToken(), email ? { ...input, email } : input
+  ).then((r) => r.data);

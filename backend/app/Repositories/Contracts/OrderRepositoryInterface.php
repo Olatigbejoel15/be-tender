@@ -42,4 +42,6 @@ interface OrderRepositoryInterface
     public function countPendingForEmail(string $email): int; // Unpaid orders this email holds
 
     public function flagLatePayment(Order $order, string $paymentReference): bool; // Cancelled order was paid: flag for refund, once only
+
+    public function updateDelivery(Order $order, array $attributes): Order; // Change delivery details and totals
 }

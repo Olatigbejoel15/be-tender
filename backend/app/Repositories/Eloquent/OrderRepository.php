@@ -186,4 +186,11 @@ class OrderRepository implements OrderRepositoryInterface
             ->orderBy('id')->limit($limit)   // Oldest first, in batches
             ->pluck('reference')->all();
     }
+
+    public function updateDelivery(Order $order, array $attributes): Order
+    {
+        $order->update($attributes);
+
+        return $order->load('items'); // Fresh items for the response
+    }
 }

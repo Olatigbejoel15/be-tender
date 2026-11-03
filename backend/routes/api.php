@@ -13,6 +13,8 @@ use App\Http\Controllers\Api\V1\Admin\AnalyticsController as AdminAnalyticsContr
 use App\Http\Controllers\Api\V1\Admin\StaffController as AdminStaffController;
 use App\Http\Controllers\Api\V1\PasswordResetController;
 use App\Http\Controllers\Api\V1\DeliveryController;
+use App\Http\Controllers\Api\V1\ContactController;
+use App\Http\Controllers\Api\V1\NewsletterController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Resources\UserResource;
@@ -35,6 +37,8 @@ Route::prefix('v1')->group(function () {
     Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');        // 5 tries a minute
     Route::post('/forgot-password', [PasswordResetController::class, 'forgot'])->middleware('throttle:5,1'); // stops email spamming
     Route::post('/reset-password', [PasswordResetController::class, 'reset'])->middleware('throttle:5,1');   // stops token guessing
+    Route::post('/contact', [ContactController::class, 'store'])->middleware('throttle:5,1');       // Contact form
+    Route::post('/newsletter', [NewsletterController::class, 'store'])->middleware('throttle:5,1'); // Mailing list
 
     // Everything under /api/v1/admin needs a login AND a staff role
     Route::prefix('admin')->middleware(['auth:sanctum', 'staff'])->group(function () {
@@ -76,6 +80,7 @@ Route::prefix('v1')->group(function () {
     Route::post('/orders/{reference}/lookup', [OrderController::class, 'lookup'])->middleware('throttle:15,1');     // Track an order
     Route::post('/orders/{reference}/pay', [PaymentController::class, 'pay'])->middleware('throttle:10,1');         // Start payment
     Route::post('/orders/{reference}/confirm', [PaymentController::class, 'confirm'])->middleware('throttle:20,1'); // Check payment
+    Route::patch('/orders/{reference}/delivery', [OrderController::class, 'updateDelivery'])->middleware('throttle:10,1'); // Fix address while unpaid
 
     // Account-only routes: a valid token is required
     Route::middleware('auth:sanctum')->group(function () {

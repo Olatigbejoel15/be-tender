@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\TooManyRequestsHttpException;
+use App\DTOs\DeliveryUpdateData;
 
 class OrderService
 {
@@ -104,6 +105,47 @@ class OrderService
     public function findFor(?User $user, string $reference, ?string $email = null): Order
     {
         return $this->orders->findForCustomer($user, $email, $reference) ?? throw new ModelNotFoundException(); // Becomes a 404
+    }
+
+        // Customer fixes the delivery details while the order is still unpaid
+    public function updateDelivery(?User $user, string $reference, ?string $email, DeliveryUpdateData $data): Order
+    {
+        $this->findFor($user, $reference, $email); // ownership first: someone else's order = 404
+
+        return DB::transaction(function () use ($reference, $data) {
+            $order = $this->orders->lockByReference($reference); // others wait: no clash with a payment landing now
+
+            if ($order->status !== OrderStatus::Pending) {
+                throw ValidationException::withMessages(['order' => ['This order can no longer be changed. Please contact us.']]);
+            }
+
+            $fee = $this->delivery->fee($order->subtotal, $data->state); // also rejects states we don't serve
+
+            // A payment page for the old amount may still be open, so the total can't move after that
+            if ($order->payment_reference !== null && $fee !== $order->delivery_fee) {
+                throw ValidationException::withMessages(['state' => [
+                    'Payment has already been started for this order, so the delivery state cannot change now. Please contact us, or place a new order once this one expires.',
+                ]]);
+            }
+
+            $note = $order->state === $data->state
+                ? 'Customer changed delivery details' // same state, other details
+                : "Customer changed delivery state from {$order->state} to {$data->state} (delivery {$order->delivery_fee} to {$fee})";
+
+            $updated = $this->orders->updateDelivery($order, [
+                'recipient_name' => $data->recipientName,
+                'phone'          => $data->phone,
+                'address'        => $data->address,
+                'city'           => $data->city,
+                'state'          => $data->state,
+                'delivery_fee'   => $fee,
+                'total'          => $order->subtotal + $fee, // recalculated here, never taken from the browser
+            ]);
+
+            $this->orders->recordStatus($updated, OrderStatus::Pending, null, $note); // visible in the admin history
+
+            return $updated;
+        });
     }
 
     // Reject lines that don't match a real, available product option

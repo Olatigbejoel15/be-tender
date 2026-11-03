@@ -21,6 +21,10 @@ use App\Repositories\Contracts\AnalyticsRepositoryInterface;
 use App\Repositories\Eloquent\AnalyticsRepository;
 use App\Repositories\Contracts\StaffRepositoryInterface;
 use App\Repositories\Eloquent\StaffRepository;
+use App\Repositories\Contracts\ContactMessageRepositoryInterface;
+use App\Repositories\Contracts\NewsletterSubscriberRepositoryInterface;
+use App\Repositories\Eloquent\ContactMessageRepository;
+use App\Repositories\Eloquent\NewsletterSubscriberRepository;
 
 class RepositoryServiceProvider extends ServiceProvider
 {
@@ -38,5 +42,7 @@ class RepositoryServiceProvider extends ServiceProvider
         StockRepositoryInterface::class => StockRepository::class, // Stock comes from Eloquent
         AnalyticsRepositoryInterface::class => AnalyticsRepository::class, // Reports come from Eloquent queries
         StaffRepositoryInterface::class => StaffRepository::class, // Staff comes from Eloquent
+        ContactMessageRepositoryInterface::class => ContactMessageRepository::class,
+        NewsletterSubscriberRepositoryInterface::class => NewsletterSubscriberRepository::class,
     ];
 }
