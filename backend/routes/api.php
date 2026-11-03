@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\V1\Admin\StockController as AdminStockController;
 use App\Http\Controllers\Api\V1\Admin\AnalyticsController as AdminAnalyticsController;
 use App\Http\Controllers\Api\V1\Admin\StaffController as AdminStaffController;
 use App\Http\Controllers\Api\V1\PasswordResetController;
+use App\Http\Controllers\Api\V1\DeliveryController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Resources\UserResource;
@@ -26,6 +27,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/categories', [CategoryController::class, 'index']);
         Route::get('/products', [ProductController::class, 'index']);
         Route::get('/products/{slug}', [ProductController::class, 'show']);
+        Route::get('/delivery-fees', [DeliveryController::class, 'index']); // Fees by state for checkout
     });
     Route::post('/webhooks/paystack', [PaymentController::class, 'webhook']); // Paystack calls this itself
 

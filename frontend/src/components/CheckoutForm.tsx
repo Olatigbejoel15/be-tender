@@ -1,6 +1,6 @@
 "use client"; // uses the cart, the login, state and the router
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -8,7 +8,7 @@ import { motion } from "framer-motion";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { ApiError } from "@/lib/authApi";
-import { placeOrder, rememberGuestEmail } from "@/lib/ordersApi";
+import { getDeliveryRates, placeOrder, rememberGuestEmail, type DeliveryRates } from "@/lib/ordersApi";
 import { naira } from "@/lib/format";
 
 // Nigeria's 36 states + FCT (the API charges delivery by state)
@@ -17,8 +17,6 @@ const STATES = [
   "Ekiti","Enugu","FCT","Gombe","Imo","Jigawa","Kaduna","Kano","Katsina","Kebbi","Kogi","Kwara","Lagos","Nasarawa",
   "Niger","Ogun","Ondo","Osun","Oyo","Plateau","Rivers","Sokoto","Taraba","Yobe","Zamfara",
 ];
-
-const FREE_DELIVERY = 50000; // keep in step with config/shop.php
 
 export default function CheckoutForm() {
   const router = useRouter();
@@ -37,6 +35,12 @@ export default function CheckoutForm() {
   const [placed, setPlaced] = useState(false); // stops the "empty cart" flash while we redirect
   const [prefilled, setPrefilled] = useState(false);
   const [attemptKey] = useState(() => crypto.randomUUID()); // one key per visit to the checkout page
+  const [rates, setRates] = useState<DeliveryRates | null>(null); // fees by state, from the API
+
+  // Load the delivery fees once. If it fails we fall back to "Added by state" below.
+  useEffect(() => {
+    getDeliveryRates().then(setRates).catch(() => setRates(null));
+  }, []);
 
   // Fill name and phone from the account once (only while the fields are still empty)
   if (user && !prefilled) {
@@ -59,6 +63,11 @@ export default function CheckoutForm() {
       </div>
     );
   }
+
+  // The fee for the chosen state: null = rates not loaded, 0 = free
+  const fee = rates ? (subtotal >= rates.freeOver ? 0 : (rates.fees[state] ?? null)) : null;
+  const toFree = rates && fee ? rates.freeOver - subtotal : 0; // naira still needed for free delivery
+  const eta = state === "Lagos" ? "1 to 3 working days" : "3 to 7 working days";
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -194,11 +203,19 @@ export default function CheckoutForm() {
         <dl className="mt-2 space-y-2 border-t border-black/10 pt-4 text-sm">
           <div className="flex justify-between"><dt>Subtotal</dt><dd className="font-semibold">{naira.format(subtotal)}</dd></div>
           <div className="flex justify-between">
-            <dt>Delivery</dt>
-            <dd className="font-semibold">{subtotal >= FREE_DELIVERY ? "Free" : "Added by state"}</dd>
+            <dt>Delivery to {state}</dt>
+            <dd className="font-semibold">{fee === null ? "Added by state" : fee === 0 ? "Free" : naira.format(fee)}</dd>
           </div>
+          {fee !== null && (
+            <div className="flex justify-between border-t border-black/10 pt-2 text-base font-semibold">
+              <dt>Total</dt><dd>{naira.format(subtotal + fee)}</dd>
+            </div>
+          )}
         </dl>
-        <p className="mt-3 text-xs text-muted">The final total, with delivery, is confirmed when you place the order.</p>
+        {toFree > 0 && (
+          <p className="mt-3 text-xs text-accent">Add {naira.format(toFree)} more for free delivery.</p>
+        )}
+        <p className="mt-3 text-xs text-muted">Estimated delivery: {eta}. The final total is confirmed when you place the order.</p>
       </aside>
     </div>
   );

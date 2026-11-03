@@ -25,6 +25,7 @@ class OrderService
         private ProductRepositoryInterface $products,
         private StockService $stock,       // Reserves stock under a lock
         private CatalogueCache $cache,     // Refreshed when stock changes
+        private DeliveryService $delivery, // Fee by delivery zone
     ) {}
 
     // Turn a cart into an order. Every price and option is checked against the database.
@@ -63,7 +64,7 @@ class OrderService
             $subtotal += $product->price * $line->quantity;
         }
 
-        $deliveryFee = $this->deliveryFee($subtotal, $data->state);
+            $deliveryFee = $this->delivery->fee($subtotal, $data->state);
 
         try {
             return DB::transaction(function () use ($user, $data, $items, $subtotal, $deliveryFee, $idempotencyKey) {
@@ -103,18 +104,6 @@ class OrderService
     public function findFor(?User $user, string $reference, ?string $email = null): Order
     {
         return $this->orders->findForCustomer($user, $email, $reference) ?? throw new ModelNotFoundException(); // Becomes a 404
-    }
-
-    // Free delivery over the threshold, otherwise a flat fee by state
-    private function deliveryFee(int $subtotal, string $state): int
-    {
-        if ($subtotal >= config('shop.free_delivery_over')) {
-            return 0;
-        }
-
-        return strcasecmp(trim($state), 'Lagos') === 0
-            ? config('shop.delivery_fee_lagos')
-            : config('shop.delivery_fee_other');
     }
 
     // Reject lines that don't match a real, available product option

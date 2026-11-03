@@ -7,8 +7,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, Minus, Plus, ShoppingBag, Trash2, Truck } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { naira } from "@/lib/format";
+import { FREE_DELIVERY } from "@/lib/shop";
 
-const FREE_DELIVERY = 50000; // free delivery threshold, in naira
+
 
 export default function CartDrawer() {
   const { items, count, subtotal, isOpen, closeCart, setQty, removeItem } = useCart();

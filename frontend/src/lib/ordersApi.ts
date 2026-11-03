@@ -95,3 +95,8 @@ export const confirmPayment = (reference: string, email: string | null = null) =
   call<{ data: Order }>(
     `/orders/${ref(reference)}/confirm`, "POST", email ? null : getToken(), email ? { email } : undefined
   ).then((r) => r.data);
+
+// Delivery fees by state, plus the free-delivery limit (one source of truth: the API)
+export type DeliveryRates = { freeOver: number; fees: Record<string, number> };
+
+export const getDeliveryRates = () => call<DeliveryRates>("/delivery-fees", "GET");

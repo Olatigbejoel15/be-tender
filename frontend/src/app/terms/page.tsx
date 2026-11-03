@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import PageShell from "@/components/PageShell";
 import LegalSection from "@/components/LegalSection";
 import { site } from "@/data/site";
+import { FREE_DELIVERY } from "@/lib/shop";
 
 export const metadata: Metadata = {
   title: "Terms & Conditions | BE TENDER",
@@ -25,11 +26,14 @@ export default function TermsPage() {
         </LegalSection>
 
         <LegalSection title="3. Delivery">
-          <p>Delivery times shown are estimates, not guarantees. Delays caused by couriers or events outside our control are not our liability, but we'll keep you updated.</p>
+          <p>We currently deliver within Nigeria only. Delivery takes 1 to 3 working days in Lagos and 3 to 7 working days elsewhere. The delivery fee depends on your state and is shown at checkout before you pay. Orders of ₦{FREE_DELIVERY.toLocaleString("en-NG")} and above ship free.</p>
+          <p>Delivery times are estimates, not guarantees. Delays caused by couriers or events outside our control are not our liability, but we&apos;ll keep you updated.</p>
         </LegalSection>
 
         <LegalSection title="4. Returns and refunds">
-          <p>Unworn items with tags can be returned within 30 days of delivery. Contact us first at {site.email}. Refunds go back to your original payment method once the return is received.</p>
+          <p>You may return an item within 7 days of delivery if it is unworn and its tags are still attached. Items with cut tags, or that have been worn or washed, cannot be returned. Contact us first at {site.email}.</p>
+          <p>We pay the return shipping for orders delivered within Lagos. For orders delivered outside Lagos, we pay half of the return shipping. Refunds go back to your original payment method once we receive the return.</p>
+          <p>If we sent you the wrong or a faulty item, contact us within 7 days of delivery and we will arrange a replacement or refund at our cost.</p>
         </LegalSection>
 
         <LegalSection title="5. Intellectual property">

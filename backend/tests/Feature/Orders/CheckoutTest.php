@@ -75,7 +75,7 @@ class CheckoutTest extends TestCase
     public function test_lagos_pays_the_lagos_delivery_fee_whatever_the_capitalisation(): void
     {
         $product = $this->makeProduct(['price' => 10000]);
-        $fee = config('shop.delivery_fee_lagos');
+        $fee = collect(config('shop.delivery_zones'))->firstWhere('name', 'Lagos')['fee']; // whatever your Lagos fee is
 
         $this->postJson(self::URL, $this->checkoutPayload($product, ['state' => ' lagos ']))
             ->assertCreated()
@@ -86,7 +86,7 @@ class CheckoutTest extends TestCase
     public function test_other_states_pay_the_other_delivery_fee(): void
     {
         $product = $this->makeProduct(['price' => 10000]);
-        $fee = config('shop.delivery_fee_other');
+        $fee = collect(config('shop.delivery_zones'))->firstWhere('name', 'North')['fee']; // Kano is in the North zone
 
         $this->postJson(self::URL, $this->checkoutPayload($product, ['state' => 'Kano']))
             ->assertCreated()

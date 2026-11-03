@@ -8,6 +8,7 @@ import SearchOverlay from "@/components/SearchOverlay"; // the search panel
 import { useCart } from "@/context/CartContext"; // the shared cart
 import { useAuth } from "@/context/AuthContext"; // who is signed in
 import Logo from "@/components/Logo"; // the Be Tender logo
+import { FREE_DELIVERY } from "@/lib/shop";
 
 // Menu items in one list so we don't repeat code
 const links = [
@@ -30,7 +31,7 @@ export default function Navbar() {
     <header className="fixed inset-x-0 top-0 z-50 bg-white">
       {/* Announcement bar */}
       <div className="bg-sand py-2 text-center text-xs font-medium tracking-wide">
-        Free delivery on orders over ₦50,000
+          Free delivery on orders over ₦{FREE_DELIVERY.toLocaleString("en-NG")}
       </div>
 
       <nav className="w-full border-b border-black/5 bg-white">
