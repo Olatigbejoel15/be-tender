@@ -60,6 +60,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .finally(() => setReady(true));
   }, []);
 
+    // Any request that gets a 401 while signed in means the token expired: sign out here too
+  useEffect(() => {
+    const onExpired = () => {
+      writeToken(null);
+      setUser(null);
+    };
+    window.addEventListener("auth:expired", onExpired);
+    return () => window.removeEventListener("auth:expired", onExpired);
+  }, []);
+
   // Save the token and remember the user
   const startSession = useCallback((r: AuthResult) => {
     writeToken(r.token);

@@ -57,6 +57,9 @@ export class ApiError extends Error {
 
   const data = await res.json().catch(() => ({})); // an HTML error page is not JSON
   if (!res.ok) {
+    if (res.status === 401 && token && typeof window !== "undefined") {
+      window.dispatchEvent(new Event("auth:expired")); // tell AuthContext the saved token is dead
+    }
     throw new ApiError(data.message ?? "Something went wrong. Please try again.", res.status, data.errors ?? {});
   }
   return data as T;

@@ -22,7 +22,6 @@ class AuthService
     }
 
     // Check the credentials and hand back a fresh token
-        // Check the credentials and hand back a fresh token
     public function login(LoginData $data): array
     {
         $user = $this->users->findByEmail($data->email);
@@ -48,8 +47,10 @@ class AuthService
         $user->currentAccessToken()->delete();
     }
 
-    private function issueToken(User $user): string
+       private function issueToken(User $user): string
     {
-        return $user->createToken('web')->plainTextToken; // The raw token is shown only once
+        $expires = $user->isStaff() ? now()->addHours(12) : now()->addDays(30); // staff sign in again daily
+
+        return $user->createToken('web', ['*'], $expires)->plainTextToken; // 3rd argument = expiry time
     }
 }

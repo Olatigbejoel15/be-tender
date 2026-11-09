@@ -3,26 +3,45 @@
 import { useState } from "react"; // memory for the email and the form status
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowRight, CheckCircle2 } from "lucide-react"; // arrow + success tick
+import { ApiError } from "@/lib/authApi";
+import { subscribeToNewsletter } from "@/lib/supportApi";
 
 export default function Newsletter() {
   const [email, setEmail] = useState(""); // what the visitor has typed
-  // status: "idle" = nothing yet, "error" = bad email, "success" = joined
+  const [website, setWebsite] = useState(""); // hidden bot trap, stays empty for real people
+  // status: "idle" = nothing yet, "error" = bad email or server problem, "success" = joined
   const [status, setStatus] = useState<"idle" | "error" | "success">("idle");
+  const [errorText, setErrorText] = useState(""); // what the error says
+  const [busy, setBusy] = useState(false); // true while we wait for the API
 
   // Runs when the form is submitted (button click or pressing Enter)
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault(); // stop the browser from reloading the page
 
     // Simple check: some text, an @, some text, a dot, some text
-    const valid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    const valid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
     if (!valid) {
+      setErrorText("Please enter a valid email address.");
       setStatus("error");
       return;
     }
 
-    // TODO (Phase 9): send the email to the Laravel API here
-    setStatus("success");
-    setEmail(""); // clear the box
+    setBusy(true);
+    try {
+      await subscribeToNewsletter(email.trim(), website);
+      setStatus("success");
+      setEmail(""); // clear the box only once the server has the address
+    } catch (err) {
+      setErrorText(
+        err instanceof ApiError && err.status === 429
+          ? "Too many tries. Please wait a minute and try again."
+          : err instanceof ApiError
+            ? (err.fields.email?.[0] ?? err.message)
+            : "Something went wrong. Please try again."
+      );
+      setStatus("error");
+    }
+    setBusy(false);
   };
 
   return (
@@ -54,8 +73,14 @@ export default function Newsletter() {
         <form
           onSubmit={handleSubmit}
           noValidate
-          className="mx-auto mt-8 flex max-w-lg flex-col gap-3 sm:flex-row"
+          className="relative mx-auto mt-8 flex max-w-lg flex-col gap-3 sm:flex-row"
         >
+          {/* Bot trap: off-screen, skipped by keyboards and screen readers. Real people never fill it. */}
+          <input
+            type="text" name="website" tabIndex={-1} autoComplete="off" aria-hidden="true"
+            value={website} onChange={(e) => setWebsite(e.target.value)}
+            className="absolute left-[-9999px] h-0 w-0 opacity-0"
+          />
           <input
             type="email"
             value={email} // the box always shows what's in state
@@ -69,11 +94,12 @@ export default function Newsletter() {
           />
           <motion.button
             type="submit"
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.97 }}
-            className="inline-flex items-center justify-center gap-2 rounded-full bg-accent px-8 py-4 text-sm font-semibold tracking-[0.15em] text-white uppercase shadow-lg"
+            disabled={busy}
+            whileHover={{ scale: busy ? 1 : 1.03 }}
+            whileTap={{ scale: busy ? 1 : 0.97 }}
+            className="inline-flex items-center justify-center gap-2 rounded-full bg-accent px-8 py-4 text-sm font-semibold tracking-[0.15em] text-white uppercase shadow-lg disabled:opacity-60"
           >
-            Subscribe <ArrowRight size={16} />
+            {busy ? "Joining..." : "Subscribe"} <ArrowRight size={16} />
           </motion.button>
         </form>
 
@@ -83,12 +109,13 @@ export default function Newsletter() {
             {status === "error" && (
               <motion.p
                 key="error"
+                role="alert"
                 initial={{ opacity: 0, y: -6 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
                 className="text-red-600"
               >
-                Please enter a valid email address.
+                {errorText}
               </motion.p>
             )}
             {status === "success" && (
